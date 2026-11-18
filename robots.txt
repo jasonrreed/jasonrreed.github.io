@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://jreed11.github.io/sitemap.xml

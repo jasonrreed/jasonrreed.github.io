@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>In the media | Jason Reed</title>
+  <meta name="description" content="Articles by and interviews with Notre Dame finance professor Jason Reed on inflation, the Federal Reserve, tariffs and markets.">
+  <link rel="canonical" href="https://jreed11.github.io/media.html">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="In the media | Jason Reed">
+  <meta property="og:description" content="Articles by and interviews with Jason Reed on inflation, the Fed, tariffs and markets.">
+  <meta name="theme-color" content="#142b4c">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23142B4C'/%3E%3Cpolyline points='10,44 22,33 31,38 42,21 54,26' fill='none' stroke='%23E2A42B' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Syne:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="wordmark" href="index.html">Jason Reed</a>
+      <nav aria-label="Main">
+        <ul>
+          <li><a href="index.html">About</a></li>
+          <li><a href="teaching.html">Teaching</a></li>
+          <li><a href="awards.html">Awards</a></li>
+          <li><a href="media.html" aria-current="page">Media</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="page-head" aria-labelledby="page-h">
+      <canvas class="band" data-seed="77" data-kind="flow" data-colors="#A3283D,#ECEEEA,#E2A42B" aria-hidden="true"></canvas>
+      <div class="wrap">
+        <h1 id="page-h">In the media</h1>
+        <p class="lead">Jason writes and comments on inflation, the Federal Reserve, tariffs and markets, with more than 100 media mentions, from a BBC radio interview to the Financial Times, The New York Times and USA Today. He is the eighth most-read Notre Dame author on The Conversation. Reporters can reach him at <a href="mailto:jreed11@nd.edu">jreed11@nd.edu</a>.</p>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <form class="filters" role="search" aria-label="Filter media mentions">
+        <fieldset>
+          <legend>Type</legend>
+          <div class="seg">
+            <button type="button" data-type="all" aria-pressed="true">All</button>
+            <button type="button" data-type="written" aria-pressed="false">Written by Jason</button>
+            <button type="button" data-type="quoted" aria-pressed="false">Interviews and quotes</button>
+            <button type="button" data-type="nd" aria-pressed="false">Notre Dame News</button>
+            <button type="button" data-type="podcast" aria-pressed="false">Podcast</button>
+          </div>
+        </fieldset>
+        <div class="field">
+          <label for="outlet">Outlet</label>
+          <select id="outlet">
+            <option value="all">All outlets</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="search">Search</label>
+          <input id="search" type="search" placeholder="Try inflation or tariffs" autocomplete="off">
+        </div>
+      </form>
+      <p class="count" id="media-count" aria-live="polite"></p>
+
+      <div id="media-list"></div>
+
+      <p class="media-foot">Titles in italics describe a piece rather than quote its headline.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>© 2026 Jason R. Reed IV</p>
+      <p>Mendoza College of Business, University of Notre Dame</p>
+    </div>
+  </footer>
+
+  <script src="js/media-data.js"></script>
+  <script src="js/site.js"></script>
+  <script src="js/paint.js"></script>
+</body>
+</html>
