@@ -1,0 +1,735 @@
+/*-- scss:defaults --*/
+
+// Libre Franklin (a Franklin Gothic revival) is sturdy enough to survive a
+// washed-out classroom projector, and its figures are plain, which matters in a
+// course full of dollar amounts. Newsreader carries headings, prompts, and terms.
+@import url("https://fonts.googleapis.com/css2?family=Libre+Franklin:ital,wght@0,400..700;1,400..700&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&display=swap");
+
+// Notre Dame navy and gold, plus a cool paper-and-grid neutral set
+$nd-navy: #0C2340;
+$nd-gold: #C99700;
+$ink: #1B2533;
+$slate: #55657A;
+$slate-light: #9AA8BA;
+$grid: #DCE3EC;
+$mist: #F3F6FA;
+$sky: #8FB3DE;
+
+$body-bg: #FFFFFF;
+$body-color: $ink;
+$link-color: #1F5FA8;
+$selection-bg: #F3E2B0;
+
+$font-family-sans-serif: "Libre Franklin", "Franklin Gothic Book", "Segoe UI", system-ui, sans-serif;
+$presentation-heading-font: "Newsreader", Georgia, "Times New Roman", serif;
+$presentation-heading-color: $nd-navy;
+$presentation-heading-font-weight: 600;
+$presentation-heading-line-height: 1.12;
+$presentation-heading-text-transform: none;
+$presentation-heading-letter-spacing: -0.005em;
+
+$presentation-font-size-root: 30px;
+$presentation-line-height: 1.42;
+$presentation-h1-font-size: 2.3em;
+$presentation-h2-font-size: 1.6em;
+$presentation-h3-font-size: 1.05em;
+$presentation-slide-text-align: left;
+$presentation-title-slide-text-align: left;
+$presentation-list-bullet-color: $nd-gold;
+
+/*-- scss:rules --*/
+
+// ---------- Base ----------
+
+.reveal .slides section h2 {
+  margin: 0 0 0.7em;
+  max-width: 24em;
+}
+
+.reveal .slides section p {
+  margin: 0 0 0.55em;
+}
+
+.reveal a {
+  text-decoration: underline;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.16em;
+}
+
+.reveal strong {
+  color: $nd-navy;
+}
+
+// Lists: gold squares at the first level, open slate squares below
+.reveal .slides ul {
+  list-style: none;
+  margin: 0 0 0.6em 0;
+  padding: 0;
+}
+
+.reveal .slides ul > li {
+  position: relative;
+  padding-left: 1.05em;
+  margin: 0.32em 0;
+}
+
+.reveal .slides ul > li::before {
+  content: "";
+  position: absolute;
+  left: 0.08em;
+  top: 0.56em;
+  width: 0.36em;
+  height: 0.36em;
+  background: $nd-gold;
+}
+
+.reveal .slides ul ul {
+  margin: 0.15em 0 0.25em;
+  font-size: 0.86em;
+  color: $slate;
+}
+
+.reveal .slides ul ul > li::before {
+  background: transparent;
+  border: 2px solid $slate-light;
+  width: 0.28em;
+  height: 0.28em;
+  top: 0.6em;
+}
+
+.reveal .lede {
+  font-size: 1.08em;
+  color: $ink;
+  max-width: 30em;
+}
+
+.reveal .small {
+  font-size: 0.78em;
+  color: $slate;
+}
+
+// ---------- Footer and slide number ----------
+
+.reveal .footer {
+  font-size: 13px !important;
+  color: $slate;
+  text-align: left !important;
+  left: 64px !important;
+  right: auto !important;
+  bottom: 18px !important;
+  letter-spacing: 0.01em;
+}
+
+.reveal .slide-number {
+  font-family: $font-family-sans-serif;
+  font-size: 13px !important;
+  color: $slate !important;
+  background: transparent !important;
+  right: 120px !important;
+  bottom: 16px !important;
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+}
+
+.reveal.has-dark-background .footer,
+.reveal.has-dark-background .slide-number {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.reveal .progress {
+  color: $nd-gold;
+  height: 4px;
+}
+
+// Title and section slides already name the course, so the footer steps aside
+.reveal.has-dark-background .footer {
+  opacity: 0 !important;
+}
+
+// ---------- Title slide ----------
+
+.reveal .slides section.course-title {
+  .lesson-no {
+    font-family: $presentation-heading-font;
+    font-style: italic;
+    font-size: 1.05em;
+    color: $nd-gold;
+    margin: 0 0 0.35em;
+  }
+
+  h1.lesson-title {
+    color: #FFFFFF;
+    font-size: 2.35em;
+    font-weight: 500;
+    line-height: 1.04;
+    max-width: 9.2em;
+    margin: 0 0 0.9em;
+  }
+
+  .lesson-meta {
+    color: #C6D2E2;
+    font-size: 0.76em;
+    line-height: 1.55;
+    margin: 0;
+  }
+}
+
+// ---------- Section breaks ----------
+
+.reveal .slides section.section-break {
+  h1 {
+    color: #FFFFFF;
+    font-weight: 500;
+    font-size: 2.2em;
+    max-width: 11em;
+  }
+
+  p {
+    color: #C6D2E2;
+    font-size: 0.9em;
+    max-width: 24em;
+  }
+}
+
+// ---------- Definitions ----------
+
+.reveal .definition {
+  background: $mist;
+  border-left: 6px solid $nd-navy;
+  padding: 0.65em 1em 0.7em;
+  margin: 0.4em 0 0.9em;
+  max-width: 34em;
+
+  .term {
+    display: block;
+    font-family: $presentation-heading-font;
+    font-weight: 600;
+    font-size: 1.04em;
+    color: $nd-navy;
+    margin-bottom: 0.15em;
+  }
+
+  p:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// ---------- Discussion prompts: every question for the room gets a gold "?" ----------
+
+.reveal .prompt {
+  position: relative;
+  padding-left: 1.35em;
+  margin: 0.9em 0 0.4em;
+  max-width: 30em;
+  font-family: $presentation-heading-font;
+  font-style: italic;
+  font-size: 1.08em;
+  line-height: 1.3;
+  color: $nd-navy;
+
+  &::before {
+    content: "?";
+    position: absolute;
+    left: 0;
+    top: -0.16em;
+    font-style: normal;
+    font-weight: 700;
+    font-size: 1.55em;
+    color: $nd-gold;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+// ---------- Worked problems ----------
+
+.reveal .problem {
+  border: 1px solid $grid;
+  border-top: 4px solid $nd-gold;
+  padding: 0.75em 1.05em 0.8em;
+  margin: 0.2em 0 0.8em;
+  font-size: 0.92em;
+
+  .problem-label {
+    display: block;
+    font-family: $presentation-heading-font;
+    font-weight: 700;
+    color: $nd-navy;
+    margin-bottom: 0.3em;
+  }
+
+  p:last-child,
+  ol:last-child {
+    margin-bottom: 0;
+  }
+
+  ol {
+    margin: 0.3em 0 0 1.2em;
+  }
+}
+
+.reveal .solution-step {
+  display: grid;
+  grid-template-columns: 9.5em 1fr;
+  gap: 1em;
+  align-items: baseline;
+  padding: 0.45em 0;
+  border-bottom: 1px solid $grid;
+
+  .label {
+    font-family: $presentation-heading-font;
+    font-weight: 600;
+    color: $nd-navy;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  .small {
+    display: block;
+    margin-top: 0.3em;
+  }
+}
+
+.reveal .takeaway {
+  margin-top: 0.8em;
+  padding-left: 0.8em;
+  border-left: 4px solid $nd-gold;
+  font-weight: 700;
+  color: $nd-navy;
+}
+
+// ---------- Parallel items in columns, each topped with a navy rule ----------
+
+.reveal .cols-2,
+.reveal .cols-3,
+.reveal .cols-4 {
+  display: grid;
+  gap: 0 1.3em;
+  margin: 0.3em 0 0.9em;
+
+  > div {
+    border-top: 3px solid $nd-navy;
+    padding-top: 0.55em;
+  }
+
+  .h {
+    display: block;
+    font-family: $presentation-heading-font;
+    font-weight: 600;
+    color: $nd-navy;
+    margin: 0 0 0.3em;
+    font-size: 1.05em;
+    line-height: 1.2;
+  }
+
+  p:has(> .h:only-child) {
+    margin: 0;
+  }
+
+  p {
+    font-size: 0.86em;
+    line-height: 1.4;
+    color: $ink;
+  }
+
+  .note {
+    display: block;
+    margin-top: 0.45em;
+    color: $slate;
+    font-size: 0.86em;
+    line-height: 1.42;
+  }
+}
+
+.reveal .cols-2 { grid-template-columns: repeat(2, 1fr); }
+.reveal .cols-3 { grid-template-columns: repeat(3, 1fr); }
+.reveal .cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+// ---------- Term / description list ----------
+
+.reveal .terms {
+  display: grid;
+  grid-template-columns: 12em 1fr;
+  gap: 0;
+  margin: 0.2em 0 0.6em;
+
+  > div {
+    padding: 0.5em 0;
+    border-bottom: 1px solid $grid;
+  }
+
+  .t {
+    font-family: $presentation-heading-font;
+    font-weight: 600;
+    font-size: 1em;
+    color: $nd-navy;
+    padding-right: 1em;
+  }
+
+  .d {
+    font-size: 0.82em;
+    line-height: 1.4;
+  }
+
+  p {
+    margin: 0;
+  }
+}
+
+// ---------- Lottery choice ----------
+
+.reveal .choice {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.2em;
+  margin-top: 0.6em;
+
+  .h {
+    display: block;
+    font-size: 1em;
+    color: $slate;
+    font-weight: 700;
+    margin: 0 0 0.2em;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  .big {
+    font-family: $presentation-heading-font;
+    font-size: 2.3em;
+    line-height: 1;
+    color: $nd-navy;
+    margin: 0 0 0.25em;
+  }
+
+  .odds {
+    display: flex;
+    height: 1.9em;
+    margin: 0.4em 0 0.35em;
+    font-weight: 700;
+    font-size: 0.9em;
+
+    span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .a { background: $nd-navy; color: #FFFFFF; }
+    .f { background: $slate-light; color: $nd-navy; }
+    .c { background: $nd-gold; color: $nd-navy; }
+  }
+
+  .caption {
+    font-size: 0.75em;
+    color: $slate;
+  }
+}
+
+// ---------- Math ----------
+
+.reveal .math.display {
+  color: $nd-navy;
+}
+
+.reveal .equation {
+  margin: 0.4em 0 0.6em;
+  font-size: 1.15em;
+}
+
+.reveal .eq-legend {
+  font-size: 0.74em;
+  color: $slate;
+}
+
+// ---------- Tables ----------
+
+.reveal table {
+  font-size: 0.92em;
+  border-collapse: collapse;
+  margin: 0.4em 0 0.8em;
+
+  th {
+    font-weight: 700;
+    color: $nd-navy;
+    border-bottom: 2px solid $nd-navy !important;
+    padding: 0.4em 1.1em 0.4em 0;
+    text-align: left;
+  }
+
+  td {
+    border-bottom: 1px solid $grid;
+    padding: 0.45em 1.1em 0.45em 0;
+  }
+
+  td:first-child {
+    color: $slate;
+  }
+}
+
+// ---------- Closing slide ----------
+
+.reveal .slides section.next-up {
+  .lesson-no {
+    font-family: $presentation-heading-font;
+    font-style: italic;
+    color: $nd-gold;
+    margin-bottom: 0.3em;
+  }
+
+  h1 {
+    color: #FFFFFF;
+    font-weight: 500;
+    font-size: 2em;
+    margin-bottom: 0.8em;
+  }
+
+  a {
+    color: #FFFFFF;
+    font-size: 0.8em;
+  }
+}
+
+// ---------- Figures ----------
+
+.reveal .split {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  gap: 1.6em;
+  align-items: center;
+
+  &.text-left {
+    grid-template-columns: 1fr 1.15fr;
+  }
+
+  img {
+    width: 100%;
+    height: auto;
+    max-height: 500px;
+    object-fit: contain;
+  }
+
+  p {
+    margin: 0 0 0.5em;
+  }
+}
+
+.reveal .figure-wide img,
+.reveal .figure-wide svg {
+  display: block;
+  width: 100%;
+  height: 440px;
+  object-fit: contain;
+  object-position: left center;
+  margin: 0.2em 0 0.4em;
+}
+
+.reveal .figure-wide.short img {
+  height: 360px;
+}
+
+.reveal .figure-wide.shorter img {
+  height: 270px;
+}
+
+.reveal .figure-wide.tall img {
+  height: 500px;
+}
+
+.reveal .quarto-figure {
+  margin: 0;
+}
+
+// Equations laid out side by side
+.reveal .eq-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.2em 2em;
+  font-size: 1.02em;
+
+  &.three {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  &.four {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  p {
+    margin: 0.2em 0;
+  }
+
+  mjx-container[display="true"] {
+    margin: 0.35em 0 !important;
+  }
+}
+
+.reveal .eq-steps {
+  font-size: 0.98em;
+
+  p {
+    margin: 0.15em 0;
+  }
+}
+
+.reveal .source {
+  font-size: 0.62em;
+  color: $slate;
+  margin-top: 0.4em;
+}
+
+.reveal .resources {
+  p {
+    font-size: 0.86em;
+    padding-left: 1.6em;
+    text-indent: -1.6em;
+    margin-bottom: 0.7em;
+  }
+}
+
+.reveal .slides section.next-up .next-links a {
+  margin-right: 1.6em;
+}
+
+// ---------- Heat-map table ----------
+
+.reveal table.heat {
+  font-size: 0.68em;
+  margin: 0 0 0.4em;
+
+  th, td {
+    padding: 0.2em 0.75em;
+    text-align: center;
+    border-bottom: 1px solid #FFFFFF;
+  }
+
+  thead th {
+    border-bottom: 2px solid $nd-navy !important;
+    padding: 0.3em 0.75em;
+  }
+
+  tbody th {
+    color: $slate;
+    font-weight: 400;
+    border-bottom: 1px solid $grid;
+  }
+
+  td.hl {
+    outline: 2px solid $nd-navy;
+    outline-offset: -2px;
+    font-weight: 700;
+    color: $nd-navy;
+  }
+
+  thead th.hl {
+    color: $nd-navy;
+    background: $mist;
+  }
+}
+
+.reveal .compact table,
+.reveal table.compact {
+  font-size: 0.8em;
+
+  th, td {
+    padding: 0.3em 0.9em 0.3em 0;
+  }
+}
+
+// ---------- Payoff matrices ----------
+// Gold fill marks a Nash equilibrium; a dashed navy outline marks the joint-profit maximum.
+
+.reveal table.payoff {
+  font-size: 0.86em;
+  margin: 0.3em 0 0.5em;
+  border-collapse: separate;
+  border-spacing: 4px;
+
+  th, td {
+    border: none !important;
+    padding: 0.45em 1.1em;
+    text-align: center;
+  }
+
+  thead th {
+    color: $nd-navy;
+    background: $mist;
+    font-weight: 700;
+  }
+
+  thead th.corner {
+    background: transparent;
+    color: $slate;
+    font-weight: 400;
+    font-size: 0.8em;
+    text-align: right;
+  }
+
+  tbody th {
+    color: $nd-navy;
+    background: $mist;
+    font-weight: 700;
+  }
+
+  td {
+    background: #FFFFFF;
+    outline: 1px solid $grid;
+    font-variant-numeric: tabular-nums;
+    color: $ink !important;
+  }
+
+  td.ne {
+    background: $selection-bg;
+    outline: 2px solid $nd-gold;
+    font-weight: 700;
+  }
+
+  td.joint {
+    outline: 2px dashed $nd-navy;
+    outline-offset: -3px;
+  }
+}
+
+.reveal .matrix-caption {
+  font-size: 0.72em;
+  color: $slate;
+  margin: 0 0 0.2em;
+}
+
+.reveal .legend-key {
+  font-size: 0.7em;
+  color: $slate;
+
+  .swatch {
+    display: inline-block;
+    width: 0.9em;
+    height: 0.9em;
+    vertical-align: -0.1em;
+    margin-right: 0.35em;
+    border: 2px solid $nd-gold;
+    background: $selection-bg;
+  }
+
+  .swatch.joint {
+    border: 2px dashed $nd-navy;
+    background: transparent;
+    margin-left: 1.2em;
+  }
+}
+
+.reveal .split.tree-left {
+  grid-template-columns: 1.55fr 1fr;
+}
+
+.reveal .split.tree-right {
+  grid-template-columns: 1fr 1.45fr;
+}

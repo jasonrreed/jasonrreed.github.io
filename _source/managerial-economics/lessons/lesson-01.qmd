@@ -1,0 +1,462 @@
+---
+pagetitle: "Lesson 1: Managerial Economics and Microeconomics"
+description: "Scarcity, opportunity cost, models, and the theory of the firm."
+---
+
+## {.course-title .center background-color="#0C2340" background-image="../theme/title-curves.svg" background-size="cover"}
+
+[Lesson 1]{.lesson-no}
+
+<h1 class="lesson-title">Managerial Economics and Microeconomics</h1>
+
+::: {.lesson-meta}
+FIN 30210 Managerial Economics<br>
+Jason R. Reed, PhD, University of Notre Dame
+:::
+
+## Economics is the study of choice under scarcity
+
+- Our wants are effectively unlimited; our capacity to produce is not
+- So we analyze optimal choices under conditions of scarcity
+
+::: {.prompt .fragment}
+Does this actually happen? How do you decide what to buy?
+:::
+
+::: notes
+Since we can't get everything we want, we have to make choices. The choices we make are the best options available given the circumstances. This practice is called optimization, and the solution method requires us to engage in the calculus of choices.
+
+Economic agents face a multitude of choices, either to maximize their utility (individuals) or to maximize their profits (firms). Generally these decisions are made subject to some constraint that keeps the agent from consuming or producing without limit.
+
+You students are masters of optimization. Your constraints tend to be time and often money. How do you choose what to do with your time?
+:::
+
+## Resources are scarce, so choices must be made
+
+::: {.cols-4}
+::: {.col}
+[Land]{.h}
+All natural resources: raw materials and other gifts of nature
+:::
+
+::: {.col}
+[Labor]{.h}
+People whose work contributes to producing a good or service
+:::
+
+::: {.col}
+[Capital]{.h}
+Manufactured inputs such as computers, tools, and buildings
+
+[Capital is not money.]{.note}
+:::
+
+::: {.col}
+[Entrepreneurial ability]{.h}
+Organizing land, labor, and capital to produce something people want
+:::
+:::
+
+- Scarce resources mean every choice carries an **opportunity cost**
+- There's no free lunch
+
+::: notes
+For the economy as a whole, the economizing problem exists because resources are scarce, not necessarily because income is scarce.
+
+"Resources" are inputs used to produce other goods and services. Land is all natural resources. Labor is the people who work and contribute to producing a good or service, and it can be split into many types of labor. Capital is all manufactured inputs, like computers, pencils, and tools. Capital to an economist is not the same as money; money isn't even considered a resource.
+
+Since resources are scarce, specifically your time, what did you give up to be in this class? What would you be doing if you weren't here right now? That is your next best alternative.
+
+Everyone's opportunity cost of coming to class is different. That points to a problem with subjective decision making: some people value sleep much more than others.
+:::
+
+## Opportunity cost
+
+::: {.definition}
+[Opportunity cost]{.term}
+The highest-valued alternative forgone whenever a choice is made.
+:::
+
+- Identify the next best alternative to a choice, then weigh the benefits and costs of giving it up
+- Think of opportunity cost as a loss of net benefit
+
+::: {.prompt .fragment}
+What is the opportunity cost of enrolling at Notre Dame?
+:::
+
+::: notes
+This idea is often difficult to fully grasp. The basic premise is that we want to know the value of the action we decided to give up, or forgo. But that comes with an inherent cost-benefit calculation.
+:::
+
+## Opportunity cost is a loss of net benefit
+
+::: {.equation}
+$$
+\text{Opportunity cost} = \left(B_{\text{alt}} - B_{\text{now}}\right) - \left(C_{\text{alt}} - C_{\text{now}}\right)
+$$
+:::
+
+[$B$ is the value of the benefit and $C$ is the cost, for the next best alternative (alt) and the action we're taking now (now).]{.eq-legend}
+
+::: {.fragment}
+**Example.** You value your next best alternative at \$100, but doing it would cost \$50. You haven't given up \$100 of benefit; you've given up \$100 − \$50 = **\$50**.
+:::
+
+::: notes
+Too often you hear opportunity cost described as just the lost benefit from an alternative action, but we can build a much richer version of what the opportunity cost should be: compare the benefits and the costs of both the alternative and the current action.
+:::
+
+## Pricing a free movie ticket
+
+::: {.problem}
+[Problem 1.1]{.problem-label}
+A friend gives you a ticket to the new Star Wars movie. At the theater you'll likely spend \$15 on concessions. The same night, you could see Beach House in concert. Tickets are \$20, but you'd be willing to pay up to \$50. You'd also pay \$15 for a round trip on the South Shore Line. **What is the opportunity cost of seeing Star Wars?**
+:::
+
+::: {.fragment}
+|                  | Star Wars        | Beach House                 |
+|------------------|------------------|-----------------------------|
+| Ticket           | Free (a gift)    | \$20                        |
+| Other costs      | \$15 concessions | \$15 South Shore round trip |
+| Value to you     | Not given        | Up to \$50                  |
+:::
+
+::: notes
+Opportunity cost calculations require us to look at both the benefits and the costs of the action we're engaged in and of our next best alternative.
+
+Follow up with In-class Assignment #1, Problem 6.
+:::
+
+## Three basic economic questions
+
+::: {.cols-3}
+::: {.col}
+[What goods and services should be produced?]{.h}
+Consumers decide, through what they buy.
+
+[**Consumer sovereignty** is the authority of consumers to determine what gets produced through their purchases in the market.]{.note}
+:::
+
+::: {.col}
+[How are they produced?]{.h}
+The firm's management decides.
+
+[**Production technology** is the inputs used, how they're organized, and the proportions in which they're combined to make what consumers want most.]{.note}
+:::
+
+::: {.col}
+[For whom are they produced?]{.h}
+Income distribution and ability to pay decide.
+
+[Questions about income distribution are ultimately questions about who owns the factors of production, and about the supply and demand for those factors.]{.note}
+:::
+:::
+
+# Theories and models {.section-break background-color="#0C2340" background-image="../theme/section-grid.svg" background-size="cover"}
+
+## Why we use models
+
+- A model is the formal expression of a theory
+- Models simplify the real world, and we can use them to predict
+- Social science versus physical science: where does behavior fit into all of this?
+
+::: {.definition}
+[Ceteris paribus]{.term}
+In analyzing the relationship between two variables, all other variables are assumed to remain unchanged.
+:::
+
+::: notes
+Models are used because they simplify the real world. They can also be used to make predictions.
+:::
+
+## What makes a theory good?
+
+::: {.cols-2}
+::: {.col}
+[Accuracy]{.h}
+How often does the theory predict what actually happens?
+:::
+
+::: {.col}
+[Parsimony trumps all]{.h}
+**Ockham's razor:** other things equal, the simplest explanation tends to be the correct one.
+:::
+:::
+
+::: {.prompt .fragment}
+Is a theory that predicts an event with 5% accuracy a "bad" theory? Should we throw away a theory that predicts at 95% accuracy for one that predicts at 96%?
+:::
+
+## Two reasoning traps
+
+::: {.cols-2}
+::: {.col}
+[Causation versus correlation]{.h}
+*Post hoc, ergo propter hoc*: "after this, therefore because of this."
+
+[It's tempting in economics to look at two sequential events and conclude that the first caused the second.]{.note}
+:::
+
+::: {.col}
+[The fallacy of composition]{.h}
+The belief that what is true for a part is necessarily true for the whole.
+
+[A penny saved is a penny earned, for one household. Is the same true when everyone saves at once?]{.note}
+:::
+:::
+
+::: notes
+The fallacy of composition example is the paradox of thrift: saving is prudent for one household, but if every household cuts spending at once, total income can fall.
+:::
+
+# Theory of the firm {.section-break background-color="#0C2340" background-image="../theme/section-grid.svg" background-size="cover"}
+
+## Theory versus the real world
+
+- In theory, firm behavior is characterized by maximizing profits
+- Are there goals other than maximizing profits?
+- Uncertainty complicates profit maximization
+
+::: notes
+Sheltered monopolies regularly fail to maximize profits because of inefficient production.
+
+Some firms would argue that their presence in the market is more important than maximizing the bottom line.
+
+The idea of uncertainty is important to our analysis of risk. The next slide makes it concrete.
+:::
+
+## What would you choose?
+
+::: {.choice}
+::: {.col}
+[Option A]{.h}
+[A or F]{.big}
+
+<div class="odds"><span class="a" style="width:50%">A, 50%</span><span class="f" style="width:50%">F, 50%</span></div>
+
+[A coin flip between the best grade and the worst]{.caption}
+:::
+
+::: {.col}
+[Option B]{.h}
+[C+]{.big}
+
+<div class="odds"><span class="c" style="width:100%">C+, certain</span></div>
+
+[Take the grade right now]{.caption}
+:::
+:::
+
+::: notes
+Ask for a show of hands. How students split between a gamble and a sure thing is a preview of how firms trade expected profit against risk.
+:::
+
+## If firms don't maximize profits, how do they decide?
+
+- Rules of thumb
+- Blind stabs in the dark
+- Suboptimizing behavior
+- Shirking
+
+::: {.prompt}
+So should we stop introducing theory?
+:::
+
+::: {.fragment}
+No. Profit maximization is an approximation, a good one, but an approximation nonetheless. We can modify our models to introduce alternative behavioral inputs.
+:::
+
+## Does profit maximization always happen?
+
+- Managers may **satisfice** rather than maximize
+- Firms pursue non-economic objectives
+- Ethics and morality shape firm behavior
+- The **principal–agent problem**
+
+::: {.prompt}
+If incentives are poorly aligned, how do we realign them?
+:::
+
+::: {.fragment}
+Profit and revenue sharing, monitoring, and peer monitoring.
+:::
+
+::: notes
+Satisficing: managers attempt to maximize some objective, such as executive salaries and perquisites, subject to a minimally acceptable requirement from shareholders, such as an "adequate" return on investment or a minimum return on sales, profit, market share, or asset growth.
+
+We don't actually know with certainty when profits are maximized. We would need some benevolent optimizer to know that.
+
+Non-economic objectives include good citizenship, product quality, and employee goodwill.
+
+Principal–agent problem: incentives don't align between managers and workers.
+:::
+
+## The firm maximizes value over time
+
+The goal of the firm is to maximize profits over a specific period, so future revenues and costs have to be discounted.
+
+::: {.equation}
+$$
+\text{Value of the firm} = \sum_{t=1}^{n} \frac{\pi_t}{(1+i)^t} = \sum_{t=1}^{n} \frac{TR_t - TC_t}{(1+i)^t}
+$$
+:::
+
+[$\pi_t$ is profit in year $t$, $TR_t$ and $TC_t$ are total revenue and total cost, and $i$ is the discount rate.]{.eq-legend}
+
+::: notes
+This is the setup slide for present value calculations. Discounting future revenues and costs lets us handle the intertemporal problem.
+:::
+
+# Economic systems and organization {.section-break background-color="#0C2340" background-image="../theme/section-grid.svg" background-size="cover"}
+
+## Pure capitalism versus socialism
+
+::: {.cols-2}
+::: {.col}
+[Pure capitalism]{.h}
+Exclusive private ownership of productive resources, with markets allocating goods and services.
+:::
+
+::: {.col}
+[Socialism]{.h}
+Partial or total public ownership of productive resources, with centralized decision making allocating them.
+:::
+:::
+
+Pure capitalism rests on five features: private property, freedom of enterprise and choice, rational self-interest, competition, and markets and prices.
+
+## Property, freedom, and self-interest
+
+::: {.terms}
+::: {.t}
+Private property
+:::
+
+::: {.d}
+Owned by private individuals, who can dispose of it as they see fit, including leaving it to heirs. Enforcement of property rights matters.
+:::
+
+::: {.t}
+Freedom of enterprise and choice
+:::
+
+::: {.d}
+Firms are free to obtain and organize resources to produce goods and services for sale. Consumers are constrained only by income in what they buy, consume, and dispose of.
+:::
+
+::: {.t}
+Rational self-interest
+:::
+
+::: {.d}
+Individuals consistently optimize some objective, within bounded rationality. Firms maximize some organizational objective.
+:::
+:::
+
+## Competition, markets, and prices
+
+::: {.terms}
+::: {.t}
+Competition
+:::
+
+::: {.d}
+Many buyers and sellers (no monopoly), with easy entry into and exit from the market.
+:::
+
+::: {.t}
+Markets and prices
+:::
+
+::: {.d}
+Markets are the coordinating mechanism of a capitalist economy, and price is the transmission mechanism: it tells participants which goods are in greatest demand and how resources should be allocated. Government involvement can distort that signal.
+:::
+:::
+
+::: notes
+For the most part, the government's role is strictly limited to providing public goods, such as public roads and national defense, and administering a judicial system to interpret and enforce contracts and private property rights.
+:::
+
+## The role of government in a market economy
+
+- **Pareto efficiency:** no one can be made better off without making someone else worse off
+  - Production efficiency: firms produce given quantities at least cost
+  - Consumption efficiency: consumers get the greatest satisfaction from their limited income
+- **Externalities:** a third party not directly involved in a transaction bears some of its costs or benefits, so the market price no longer reflects them all
+
+::: notes
+Without externalities, the market price of a good or service fully reflects its benefits and costs.
+
+When information is imperfect, or when externalities exist, market imperfections arise and economic efficiency is not achieved.
+:::
+
+# Measuring profit {.section-break background-color="#0C2340" background-image="../theme/section-grid.svg" background-size="cover"}
+
+## Normal profit
+
+::: {.definition}
+[Normal profit]{.term}
+The level of profit required to keep a firm engaged in a particular activity. It's an implicit cost of doing business.
+:::
+
+A firm earning zero economic profit is earning a rate of return equal to the return on the next best alternative investment of equal risk.
+
+::: {.prompt .fragment}
+If you're earning 1,000% a year on Bitcoin, what return would you need to switch to Ethereum, assuming the same risk?
+:::
+
+## Accounting profit versus economic profit
+
+::: {.problem}
+[Problem 1.03]{.problem-label}
+Adam owns a small grocery store. His annual revenue is \$200,000 and his total explicit cost is \$180,000, which includes the \$30,000 annual salary he pays himself. A supermarket chain wants to hire Adam as its general manager for \$60,000 a year.
+
+1. What is Adam's accounting profit?
+2. What is Adam's economic profit?
+:::
+
+::: notes
+Economic profit considers not only the explicit costs of production but also implicit costs, like opportunity costs.
+:::
+
+## Problem 1.03: solution
+
+::: {.solution-step .fragment}
+[Accounting profit]{.label}
+
+::: {.v}
+\$200,000 − \$180,000 = **\$20,000**
+:::
+:::
+
+::: {.solution-step .fragment}
+[Economic profit]{.label}
+
+::: {.v}
+\$20,000 − (\$60,000 − \$30,000) = **−\$10,000**
+
+[The \$60,000 job offer is an implicit cost. Adam already pays himself \$30,000 of it, so the other \$30,000 comes out of accounting profit.]{.small}
+:::
+:::
+
+::: {.solution-step .fragment}
+[Check]{.label}
+
+::: {.v}
+Staying earns Adam \$20,000 + \$30,000 = \$50,000, against \$60,000 at the supermarket: \$10,000 less.
+:::
+:::
+
+::: {.takeaway .fragment}
+Adam's store is profitable on paper and unprofitable in economic terms.
+:::
+
+## {.next-up .center background-color="#0C2340" background-image="../theme/section-grid.svg" background-size="cover"}
+
+[Up next: Lesson 2]{.lesson-no}
+
+<h1>Math Review</h1>
+
+::: {.next-links}
+[Open Lesson 2](lesson-02.html) [All lessons](../index.html)
+:::

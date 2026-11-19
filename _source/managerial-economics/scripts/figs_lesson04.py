@@ -1,0 +1,51 @@
+"""Figures for Lesson 4: Elasticity."""
+import numpy as np
+from econplot import *
+
+# Elasticity varies along a linear demand curve
+fig, ax = figure(6.2, 4.4)
+axes(ax, "$Q$", "$P$", (0, 110), (0, 11), origin="0")
+q = np.linspace(0, 55, 50)
+ax.plot(q, 11 - 0.1 * q, color=NAVY, lw=3.4, solid_capstyle="round")
+q2 = np.linspace(55, 110, 50)
+ax.plot(q2, 11 - 0.1 * q2, color=BLUE, lw=3.4, solid_capstyle="round")
+point(ax, 55, 5.5, GOLD, 10)
+guide(ax, 55, 5.5, "$Q_{max}/2$", "$P_{max}/2$")
+note(ax, 24, 9.3, r"elastic, $|\varepsilon_P| > 1$", NAVY, 15)
+note(ax, 60, 6.0, r"unit elastic, $|\varepsilon_P| = 1$", GOLD, 15)
+note(ax, 78, 3.6, r"inelastic, $|\varepsilon_P| < 1$", BLUE, 15)
+save(fig, "l04-elasticity-along-demand")
+
+# Perfectly elastic and perfectly inelastic demand
+fig, (a1, a2) = figure(9.0, 3.4, ncols=2)
+axes(a1, "$Q$", "$P$", (0, 10), (0, 10), origin="0")
+curve(a1, np.array([0, 9]), np.array([5, 5]), NAVY, label="$D$")
+note(a1, 0.6, 6.0, r"$|\varepsilon_P| = \infty$", SLATE, 16)
+axes(a2, "$Q$", "$P$", (0, 10), (0, 10), origin="0")
+curve(a2, np.array([5, 5]), np.array([0.5, 9.2]), NAVY, label="$D$", dx=0.2, dy=-0.2)
+note(a2, 5.5, 5, r"$|\varepsilon_P| = 0$", SLATE, 16)
+save(fig, "l04-perfect")
+
+# Demand, marginal revenue, and total revenue
+fig, (a1, a2) = figure(9.6, 4.0, ncols=2)
+axes(a1, "$Q$", "$P$", (0, 12), (0, 12), origin="0")
+a1.fill_between([0, 5], [0, 0], [5, 5], color=SHADE_GOLD, zorder=0)
+note(a1, 2.5, 2.3, "$TR_{max}$", NAVY, 15, ha="center")
+qq = np.linspace(0, 9.6, 50)
+curve(a1, qq, 10 - qq, NAVY, label="$D$")
+qm = np.linspace(0, 5.6, 50)
+curve(a1, qm[qm <= 5], (10 - 2 * qm)[qm <= 5], BLUE)
+note(a1, 5.25, 0.7, "$MR$", BLUE, 17)
+guide(a1, 5, 5, "$Q_{max}/2$", "$a_0/2$")
+tick(a1, y=10, label="$a_0$")
+tick(a1, x=10, label="$Q_{max}$")
+point(a1, 5, 5, GOLD)
+note(a1, 2.9, 8.6, r"$|\varepsilon_P| > 1$", SLATE, 14)
+note(a1, 7.4, 3.9, r"$|\varepsilon_P| < 1$", SLATE, 14)
+axes(a2, "$Q$", "$TR$", (0, 12), (0, 30), origin="0")
+qt = np.linspace(0, 10, 100)
+curve(a2, qt, 10 * qt - qt ** 2, NAVY, label="$TR$", at=70, dx=0.3)
+guide(a2, 5, 25, "$Q_{max}/2$", "$TR_{max}$")
+point(a2, 5, 25, GOLD)
+tick(a2, x=10, label="$Q_{max}$")
+save(fig, "l04-revenue")

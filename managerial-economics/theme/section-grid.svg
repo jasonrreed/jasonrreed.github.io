@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice">
+<defs>
+  <pattern id="g" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1A3860" stroke-width="1"/>
+  </pattern>
+  <linearGradient id="fade" x1="0" x2="1" y1="0" y2="0">
+    <stop offset="0.38" stop-color="#fff" stop-opacity="0"/>
+    <stop offset="0.80" stop-color="#fff" stop-opacity="1"/>
+  </linearGradient>
+  <mask id="m"><rect width="1280" height="720" fill="url(#fade)"/></mask>
+</defs>
+<rect width="1280" height="720" fill="#0C2340"/>
+<rect width="1280" height="720" fill="url(#g)" mask="url(#m)"/>
+<g fill="none" stroke-linecap="round" opacity="0.22">
+  <path d="M 760 120 L 760 610 L 1215 610" stroke="#7F96B5" stroke-width="2"/>
+  <path d="M 810 165 C 880 420, 980 520, 1185 565" stroke="#8FB3DE" stroke-width="4"/>
+  <path d="M 805 560 C 960 500, 1080 350, 1170 160" stroke="#C99700" stroke-width="4"/>
+</g>
+<circle cx="962.6" cy="459.3" r="10" fill="#C99700"/>
+</svg>

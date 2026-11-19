@@ -1,0 +1,12 @@
+project:
+  type: website
+  output-dir: _site
+  render:
+    - index.qmd
+    - lessons/*.qmd
+  resources:
+    - theme/*.svg
+
+website:
+  title: "FIN 30210 Managerial Economics"
+  site-url: "https://jasonrreed.github.io/managerial-economics/"

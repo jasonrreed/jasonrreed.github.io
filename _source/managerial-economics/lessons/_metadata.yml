@@ -1,0 +1,23 @@
+format:
+  revealjs:
+    theme: [default, ../theme/slides.scss]
+    width: 1280
+    height: 720
+    margin: 0.06
+    center: false
+    slide-number: c/t
+    show-slide-number: all
+    footer: "FIN 30210 Managerial Economics"
+    transition: none
+    background-transition: fade
+    hash-type: number
+    controls: true
+    controls-layout: bottom-right
+    controls-tutorial: false
+    progress: true
+    menu:
+      side: left
+    html-math-method:
+      method: mathjax
+      url: "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg-full.js"
+    lang: en

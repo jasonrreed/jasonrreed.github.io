@@ -1,4 +1,4 @@
-# jreed11.github.io
+# jasonrreed.github.io
 
 Personal site for Jason Reed, Wade Family Associate Teaching Professor of Finance at the University of Notre Dame.
 
@@ -10,8 +10,13 @@ It's plain HTML, CSS and JavaScript with no build step. GitHub Pages serves the 
 |---|---|
 | `index.html` | About (home), with the painted market chart, bio, education, research, recent commentary and contact |
 | `teaching.html` | Courses and work beyond the classroom |
+| `materials.html` | Notes and materials: links to course slides, such as the Managerial Economics decks in the `managerial-economics` repository |
 | `awards.html` | Awards timeline |
 | `media.html` | Media mentions with filters and search |
+
+## Course slides
+
+`managerial-economics/` holds the rendered FIN 30210 Managerial Economics slides, served at https://jasonrreed.github.io/managerial-economics/. Don't edit those files by hand. The source is in `_source/managerial-economics/`, and its README explains how to change a lesson and republish.
 
 ## Common updates
 
@@ -25,8 +30,8 @@ It's plain HTML, CSS and JavaScript with no build step. GitHub Pages serves the 
 
 ## Hosting
 
-The repository must be named `jreed11.github.io` for the site to appear at https://jreed11.github.io/.
+The repository must be named `jasonrreed.github.io` for the site to appear at https://jasonrreed.github.io/.
 
 The `.nojekyll` file tells GitHub Pages to serve the files directly instead of running Jekyll. If an old `index.md` or `_config.yml` is still in the repository, delete them so they don't compete with `index.html`.
 
-`sitemap.xml` and `robots.txt` help search engines find the pages. To get indexed faster, add the site in Google Search Console and submit `https://jreed11.github.io/sitemap.xml`.
+`sitemap.xml` and `robots.txt` help search engines find the pages. To get indexed faster, add the site in Google Search Console and submit `https://jasonrreed.github.io/sitemap.xml`.
