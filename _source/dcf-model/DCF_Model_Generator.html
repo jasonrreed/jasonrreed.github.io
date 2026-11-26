@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DCF Model Generator | Jason Reed</title>
+<meta name="description" content="An interactive discounted cash flow model with scenarios, sensitivity analysis and relative valuation, built for FIN 40610 Security Analysis at the University of Notre Dame."/>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23142B4C'/%3E%3Cpolyline points='10,44 22,33 31,38 42,21 54,26' fill='none' stroke='%23E2A42B' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-100">
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
+
+const defaultScenarios = {
+  base: {
+    name: 'Base Case', color: 'blue',
+    assumptions: {
+      baseRevenue: 100,
+      revenueGrowthRates: [0.15, 0.12, 0.10, 0.08, 0.06],
+      grossMargin: 0.65, sgaAsPercentRevenue: 0.20, rdAsPercentRevenue: 0.10,
+      taxRate: 0.25, workingCapitalAsPercentRevenue: 0.15,
+      capexAsPercentRevenue: 0.04, depreciationAsPercentCapex: 0.25,
+      terminalGrowthRate: 0.025,
+      riskFreeRate: 0.04, equityMarketReturn: 0.10, beta: 1.2,
+      debtToCapitalRatio: 0.23, costOfDebt: 0.05,
+      projectionYears: 5, forwardEVEBITDA: 12.0, forwardPE: 18.0,
+      cashAndMarketableSecurities: 25.0, totalDebt: 20.0, dilutedSharesOutstanding: 50.0
+    }
+  },
+  bull: {
+    name: 'Bull Case', color: 'green',
+    assumptions: {
+      baseRevenue: 100,
+      revenueGrowthRates: [0.25, 0.20, 0.17, 0.14, 0.11],
+      grossMargin: 0.70, sgaAsPercentRevenue: 0.18, rdAsPercentRevenue: 0.09,
+      taxRate: 0.25, workingCapitalAsPercentRevenue: 0.12,
+      capexAsPercentRevenue: 0.035, depreciationAsPercentCapex: 0.30,
+      terminalGrowthRate: 0.035,
+      riskFreeRate: 0.04, equityMarketReturn: 0.10, beta: 1.0,
+      debtToCapitalRatio: 0.20, costOfDebt: 0.045,
+      projectionYears: 5, forwardEVEBITDA: 14.0, forwardPE: 22.0,
+      cashAndMarketableSecurities: 30.0, totalDebt: 15.0, dilutedSharesOutstanding: 50.0
+    }
+  },
+  bear: {
+    name: 'Bear Case', color: 'red',
+    assumptions: {
+      baseRevenue: 100,
+      revenueGrowthRates: [0.08, 0.06, 0.05, 0.04, 0.03],
+      grossMargin: 0.58, sgaAsPercentRevenue: 0.23, rdAsPercentRevenue: 0.11,
+      taxRate: 0.25, workingCapitalAsPercentRevenue: 0.18,
+      capexAsPercentRevenue: 0.05, depreciationAsPercentCapex: 0.20,
+      terminalGrowthRate: 0.015,
+      riskFreeRate: 0.04, equityMarketReturn: 0.10, beta: 1.5,
+      debtToCapitalRatio: 0.29, costOfDebt: 0.06,
+      projectionYears: 5, forwardEVEBITDA: 9.0, forwardPE: 14.0,
+      cashAndMarketableSecurities: 15.0, totalDebt: 30.0, dilutedSharesOutstanding: 50.0
+    }
+  }
+};
+
+function calcWACC(a) {
+  const mrp = a.equityMarketReturn - a.riskFreeRate;
+  const coe = a.riskFreeRate + a.beta * mrp;
+  const ew = 1 - a.debtToCapitalRatio;
+  const dw = a.debtToCapitalRatio;
+  const wacc = ew * coe + dw * a.costOfDebt * (1 - a.taxRate);
+  return { wacc, coe, mrp };
+}
+
+function calcProjections(a) {
+  const { wacc, coe, mrp } = calcWACC(a);
+  const projs = [];
+  let cumCapex = 0;
+  let prevNopat = null;
+
+  for (let i = 0; i < a.projectionYears; i++) {
+    const prevRev = i === 0 ? a.baseRevenue : projs[i-1].revenue;
+    const revenue = prevRev * (1 + a.revenueGrowthRates[i]);
+    const grossProfit = revenue * a.grossMargin;
+    const sga = revenue * a.sgaAsPercentRevenue;
+    const rd = revenue * a.rdAsPercentRevenue;
+    const ebitda = grossProfit - sga - rd;
+    const capex = revenue * a.capexAsPercentRevenue;
+    const depreciation = capex * a.depreciationAsPercentCapex;
+    const ebit = ebitda - depreciation;
+    const tax = ebit * a.taxRate;
+    const nopat = ebit - tax;
+    const workingCapital = revenue * a.workingCapitalAsPercentRevenue;
+    const prevWC = i === 0 ? a.baseRevenue * a.workingCapitalAsPercentRevenue : projs[i-1].workingCapital;
+    const changeInWC = workingCapital - prevWC;
+    const fcf = nopat + depreciation - changeInWC - capex;
+    const pv = fcf / Math.pow(1 + wacc, i + 1);
+    cumCapex += capex;
+    const investedCapital = workingCapital + cumCapex;
+    const roic = investedCapital > 0 ? nopat / investedCapital : 0;
+    const reinvestmentRate = nopat > 0 ? (capex + changeInWC) / nopat : 0;
+    const fundamentalGrowthRate = roic * reinvestmentRate;
+    const nopatGrowthRate = prevNopat && prevNopat > 0 ? (nopat - prevNopat) / prevNopat : 0;
+    prevNopat = nopat;
+    projs.push({ year: i+1, revenue, grossProfit, sga, rd, ebitda, capex, depreciation, ebit, tax, nopat, workingCapital, changeInWC, fcf, presentValue: pv, roic, reinvestmentRate, fundamentalGrowthRate, nopatGrowthRate });
+  }
+
+  const sumPVs = projs.reduce((s, p) => s + p.presentValue, 0);
+  const lastFCF = projs[projs.length - 1].fcf;
+  const tv = lastFCF * (1 + a.terminalGrowthRate) / (wacc - a.terminalGrowthRate);
+  const tvPV = tv / Math.pow(1 + wacc, a.projectionYears);
+  const ev = sumPVs + tvPV;
+  const equityValue = ev + a.cashAndMarketableSecurities - a.totalDebt;
+  const sharePrice = equityValue / a.dilutedSharesOutstanding;
+
+  return { projections: projs, wacc, coe, mrp, sumOfPVs: sumPVs, terminalValue: tv, terminalValuePV: tvPV, enterpriseValue: ev, equityValue, sharePrice };
+}
+
+const fmt = (v) => {
+  if (v === undefined || v === null || isNaN(v)) return '-';
+  const s = `$${Math.abs(v).toFixed(1)}M`;
+  return v < -0.05 ? `(${s})` : s;
+};
+const fmtPct = (v) => {
+  if (v === undefined || v === null || isNaN(v)) return '-';
+  return `${(v * 100).toFixed(1)}%`;
+};
+
+const TABS = [
+  'Assumptions','Financial Statements','DCF Projections','DCF Valuation',
+  'Relative Valuation','Scenarios','Sensitivity','Formula Glossary'
+];
+
+function ScenarioBtn({ id, scenario, current, onClick }) {
+  const colors = { blue: 'bg-blue-600 text-white', green: 'bg-green-600 text-white', red: 'bg-red-600 text-white' };
+  const inactive = { blue: 'bg-blue-50 text-blue-700 border border-blue-300', green: 'bg-green-50 text-green-700 border border-green-300', red: 'bg-red-50 text-red-700 border border-red-300' };
+  const cls = current === id ? colors[scenario.color] : inactive[scenario.color];
+  return <button className={`px-3 py-1.5 rounded text-sm font-medium ${cls}`} onClick={() => onClick(id)}>{scenario.name}</button>;
+}
+
+function App() {
+  const [scenarios, setScenarios] = useState(defaultScenarios);
+  const [current, setCurrent] = useState('base');
+  const [tab, setTab] = useState('Assumptions');
+
+  const a = scenarios[current].assumptions;
+  const calc = calcProjections(a);
+  const allCalc = {
+    base: calcProjections(scenarios.base.assumptions),
+    bull: calcProjections(scenarios.bull.assumptions),
+    bear: calcProjections(scenarios.bear.assumptions),
+  };
+
+  const upd = (key, val) => {
+    setScenarios(prev => ({
+      ...prev,
+      [current]: { ...prev[current], assumptions: { ...prev[current].assumptions, [key]: parseFloat(val) || 0 } }
+    }));
+  };
+  const updGrowth = (idx, val) => {
+    const rates = [...a.revenueGrowthRates];
+    rates[idx] = (parseFloat(val) || 0) / 100;
+    setScenarios(prev => ({
+      ...prev,
+      [current]: { ...prev[current], assumptions: { ...prev[current].assumptions, revenueGrowthRates: rates } }
+    }));
+  };
+
+  const inp = (label, key, pct = false, step = 0.1, hint = '') => (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}{pct ? ' (%)' : ''}</label>
+      <input type="number" step={step}
+        value={pct ? +(a[key] * 100).toFixed(4) : a[key]}
+        onChange={e => upd(key, pct ? e.target.value / 100 : e.target.value)}
+        className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+      {hint && <p className="text-xs text-gray-400 mt-0.5">{hint}</p>}
+    </div>
+  );
+
+  const card = (title, children) => (
+    <div className="bg-white rounded-lg shadow-sm border p-5">
+      <h3 className="text-base font-semibold text-gray-900 mb-4">{title}</h3>
+      <div className="space-y-3">{children}</div>
+    </div>
+  );
+
+  const calcBox = (label, val, color = 'blue') => {
+    const cols = { blue:'bg-blue-50 text-blue-700 font-bold text-blue-900', green:'bg-green-50 text-green-700 font-bold text-green-900', purple:'bg-purple-50 text-purple-700 font-bold text-purple-900' };
+    const [bg, lbl, val_] = cols[color].split(' ');
+    return (
+      <div className={`${bg} p-3 rounded flex justify-between items-center`}>
+        <span className={`text-sm font-medium ${lbl}`}>{label}</span>
+        <span className={`text-sm ${val_}`}>{val}</span>
+      </div>
+    );
+  };
+
+  const thCls = "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider";
+  const tdCls = "px-4 py-3 text-sm text-right text-gray-900 whitespace-nowrap";
+  const tdBold = "px-4 py-3 text-sm text-right font-bold whitespace-nowrap";
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Header */}
+      <div className="bg-white border-b shadow-sm px-4 py-3">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <a href="../materials.html#security-analysis" className="text-xs font-medium text-blue-700 hover:underline">Jason Reed: Notes and materials</a>
+            <h1 className="text-xl font-bold text-gray-900">DCF Model Generator</h1>
+            <p className="text-xs text-gray-500">Professional Discounted Cash Flow Analysis</p>
+          </div>
+          <div className="flex gap-2">
+            {Object.entries(scenarios).map(([id, s]) => (
+              <ScenarioBtn key={id} id={id} scenario={s} current={current} onClick={setCurrent}/>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto overflow-x-auto">
+          <div className="flex">
+            {TABS.map(t => (
+              <button key={t} onClick={() => setTab(t)}
+                className={`px-4 py-3 text-xs font-medium border-b-2 whitespace-nowrap transition-colors ${tab === t ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto p-4 space-y-6">
+
+        {/* ===== ASSUMPTIONS ===== */}
+        {tab === 'Assumptions' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {card('Revenue Assumptions', <>
+              {inp('Base Year Revenue ($M)', 'baseRevenue', false, 1)}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-2">Revenue Growth Rates (%)</label>
+                {a.revenueGrowthRates.map((r, i) => (
+                  <div key={i} className="flex items-center gap-2 mb-1">
+                    <span className="text-xs text-gray-500 w-10">Yr {i+1}</span>
+                    <input type="number" step="0.1" value={+(r*100).toFixed(4)}
+                      onChange={e => updGrowth(i, e.target.value)}
+                      className="flex-1 px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"/>
+                    <span className="text-xs text-gray-400">%</span>
+                  </div>
+                ))}
+              </div>
+            </>)}
+
+            {card('Margin Assumptions', <>
+              {inp('Gross Margin', 'grossMargin', true)}
+              {inp('SG&A as % of Revenue', 'sgaAsPercentRevenue', true)}
+              {inp('R&D as % of Revenue', 'rdAsPercentRevenue', true)}
+              {inp('Tax Rate', 'taxRate', true)}
+            </>)}
+
+            {card('Working Capital & Investment', <>
+              {inp('Working Capital as % of Revenue', 'workingCapitalAsPercentRevenue', true)}
+              {inp('CapEx as % of Revenue', 'capexAsPercentRevenue', true)}
+              {inp('Depreciation as % of CapEx', 'depreciationAsPercentCapex', true, 1, 'Typical: 20–30% for most assets')}
+            </>)}
+
+            {card('WACC & Terminal Value', <>
+              {inp('Risk-Free Rate', 'riskFreeRate', true, 0.01)}
+              {inp('Equity Market Return', 'equityMarketReturn', true, 0.01)}
+              {inp('Beta', 'beta', false, 0.01)}
+              {inp('Debt-to-Capital Ratio', 'debtToCapitalRatio', true, 0.1)}
+              {inp('Cost of Debt', 'costOfDebt', true, 0.01)}
+              <div className="border-t pt-3 space-y-2">
+                {calcBox('Market Risk Premium', fmtPct(calc.mrp), 'blue')}
+                {calcBox('Cost of Equity', fmtPct(calc.coe), 'green')}
+                {calcBox('WACC', fmtPct(calc.wacc), 'purple')}
+              </div>
+              <div className="border-t pt-3">
+                {inp('Terminal Growth Rate', 'terminalGrowthRate', true, 0.01)}
+              </div>
+            </>)}
+
+            {card('Relative Valuation', <>
+              {inp('Forward EV/EBITDA Multiple', 'forwardEVEBITDA', false, 0.1)}
+              {inp('Forward P/E Multiple', 'forwardPE', false, 0.1)}
+            </>)}
+
+            {card('Balance Sheet Items', <>
+              {inp('Cash & Marketable Securities ($M)', 'cashAndMarketableSecurities', false, 1)}
+              {inp('Total Debt ($M)', 'totalDebt', false, 1)}
+              {inp('Diluted Shares Outstanding (M)', 'dilutedSharesOutstanding', false, 1)}
+            </>)}
+          </div>
+        )}
+
+        {/* ===== FINANCIAL STATEMENTS ===== */}
+        {tab === 'Financial Statements' && calc.projections && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+              <div className="px-5 py-3 bg-gray-50 border-b"><h3 className="font-semibold text-gray-900">Income Statement ($M)</h3></div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className={thCls + ' text-left'}>Metric</th>
+                      <th className={thCls + ' text-right'}>Base Year</th>
+                      {calc.projections.map(p => <th key={p.year} className={thCls + ' text-right'}>Year {p.year}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {[
+                      ['Revenue', p => p.revenue, false, 'bg-blue-50 font-bold text-blue-900'],
+                      ['Gross Profit', p => p.grossProfit, false, ''],
+                      ['SG&A', p => p.sga, false, 'bg-gray-50'],
+                      ['R&D', p => p.rd, false, ''],
+                      ['EBITDA', p => p.ebitda, false, 'bg-purple-50 font-bold text-purple-900'],
+                      ['Depreciation', p => p.depreciation, false, 'bg-gray-50'],
+                      ['EBIT', p => p.ebit, false, ''],
+                      ['Tax', p => p.tax, false, 'bg-gray-50'],
+                      ['NOPAT', p => p.nopat, false, 'bg-green-50 font-bold text-green-900'],
+                    ].map(([label, fn, neg, rowCls]) => (
+                      <tr key={label} className={rowCls}>
+                        <td className="px-4 py-2.5 text-sm text-gray-900 font-medium whitespace-nowrap">{label}</td>
+                        <td className={tdCls}>{label === 'Revenue' ? fmt(a.baseRevenue) : '-'}</td>
+                        {calc.projections.map(p => <td key={p.year} className={tdCls}>{fmt(fn(p))}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+              <div className="px-5 py-3 bg-gray-50 border-b"><h3 className="font-semibold text-gray-900">Cash Flow Statement ($M)</h3></div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className={thCls + ' text-left'}>Metric</th>
+                      {calc.projections.map(p => <th key={p.year} className={thCls + ' text-right'}>Year {p.year}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {[
+                      ['NOPAT', p => p.nopat, ''],
+                      ['Add: Depreciation', p => p.depreciation, 'bg-gray-50'],
+                      ['Less: Change in Working Capital', p => p.changeInWC, ''],
+                      ['Capital Expenditures', p => p.capex, 'bg-gray-50'],
+                      ['Unlevered Free Cash Flow', p => p.fcf, 'bg-yellow-50 font-bold text-yellow-900'],
+                    ].map(([label, fn, rowCls]) => (
+                      <tr key={label} className={rowCls}>
+                        <td className="px-4 py-2.5 text-sm text-gray-900 font-medium whitespace-nowrap">{label}</td>
+                        {calc.projections.map(p => <td key={p.year} className={tdCls}>{fmt(fn(p))}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== DCF PROJECTIONS ===== */}
+        {tab === 'DCF Projections' && calc.projections && (
+          <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div className="px-5 py-3 bg-gray-50 border-b"><h3 className="font-semibold text-gray-900">DCF Projections ($M)</h3></div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className={thCls + ' text-left'}>Metric</th>
+                    {calc.projections.map(p => <th key={p.year} className={thCls + ' text-right'}>Year {p.year}</th>)}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {[
+                    ['Revenue', p => p.revenue, ''],
+                    ['EBITDA', p => p.ebitda, 'bg-gray-50'],
+                    ['NOPAT', p => p.nopat, ''],
+                    ['Free Cash Flow', p => p.fcf, 'bg-blue-50 font-bold text-blue-900'],
+                    ['Present Value of FCF', p => p.presentValue, 'bg-green-50 font-bold text-green-900'],
+                  ].map(([label, fn, rowCls]) => (
+                    <tr key={label} className={rowCls}>
+                      <td className="px-4 py-2.5 text-sm font-medium text-gray-900">{label}</td>
+                      {calc.projections.map(p => <td key={p.year} className={tdCls}>{fmt(fn(p))}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ===== DCF VALUATION ===== */}
+        {tab === 'DCF Valuation' && calc.projections && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Valuation Summary */}
+              <div className="bg-white rounded-lg shadow-sm border p-5">
+                <h3 className="font-semibold text-gray-900 mb-4">Valuation Summary</h3>
+                <div className="space-y-2">
+                  {[['WACC', fmtPct(calc.wacc)], ['Sum of PV of FCFs', fmt(calc.sumOfPVs)], ['PV of Terminal Value', fmt(calc.terminalValuePV)]].map(([l, v]) => (
+                    <div key={l} className="flex justify-between items-center py-1.5 border-b text-sm">
+                      <span className="text-gray-600">{l}</span><span className="font-medium">{v}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center py-2 bg-blue-50 rounded px-3 mt-2">
+                    <span className="font-bold text-blue-900">Enterprise Value</span>
+                    <span className="font-bold text-blue-900">{fmt(calc.enterpriseValue)}</span>
+                  </div>
+                  <div className="border-t pt-3 space-y-1.5">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Add: Cash & Marketable Securities</span>
+                      <span>{fmt(a.cashAndMarketableSecurities)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Less: Total Debt</span>
+                      <span>({fmt(a.totalDebt)})</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 bg-green-50 rounded px-3">
+                      <span className="font-bold text-green-900">Equity Value</span>
+                      <span className="font-bold text-green-900">{fmt(calc.equityValue)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-1">
+                      <span className="text-gray-600">Diluted Shares Outstanding (M)</span>
+                      <span>{a.dilutedSharesOutstanding.toFixed(1)}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 bg-purple-50 rounded px-3">
+                      <span className="font-bold text-purple-900">Share Price</span>
+                      <span className="font-bold text-purple-900">${calc.sharePrice.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Value Bridge */}
+              <div className="bg-white rounded-lg shadow-sm border p-5">
+                <h3 className="font-semibold text-gray-900 mb-4">Value Bridge</h3>
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="bg-blue-50 p-3 rounded">
+                    <div className="text-xs text-blue-700 font-medium">Terminal Growth (Assumed)</div>
+                    <div className="text-lg font-bold text-blue-900">{fmtPct(a.terminalGrowthRate)}</div>
+                  </div>
+                  <div className="bg-green-50 p-3 rounded">
+                    <div className="text-xs text-green-700 font-medium">Fundamental Growth (Yr 5)</div>
+                    <div className="text-lg font-bold text-green-900">{fmtPct(calc.projections[calc.projections.length-1].fundamentalGrowthRate)}</div>
+                  </div>
+                </div>
+                {[['Explicit FCF Period', calc.sumOfPVs / calc.enterpriseValue, 'bg-blue-500'],
+                  ['Terminal Value', calc.terminalValuePV / calc.enterpriseValue, 'bg-green-500']].map(([label, pct, color]) => (
+                  <div key={label} className="mb-3">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">{label}</span>
+                      <span className="font-medium">{(pct * 100).toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className={`${color} h-2 rounded-full`} style={{width: `${Math.max(0, Math.min(100, pct*100))}%`}}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Fundamental Growth Analysis */}
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+              <div className="px-5 py-3 bg-gray-50 border-b">
+                <h3 className="font-semibold text-gray-900">Fundamental Growth Analysis</h3>
+                <p className="text-xs text-gray-500 mt-0.5">ROIC × Reinvestment Rate vs. assumed NOPAT growth</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className={thCls + ' text-left'}>Metric</th>
+                      {calc.projections.map(p => <th key={p.year} className={thCls + ' text-right'}>Year {p.year}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    <tr>
+                      <td className="px-4 py-2.5 text-sm font-medium text-gray-900">NOPAT Growth Rate</td>
+                      {calc.projections.map((p, i) => <td key={p.year} className={tdCls}>{i === 0 ? '-' : fmtPct(p.nopatGrowthRate)}</td>)}
+                    </tr>
+                    <tr className="bg-gray-50">
+                      <td className="px-4 py-2.5 text-sm text-gray-900">ROIC</td>
+                      {calc.projections.map(p => <td key={p.year} className={tdCls}>{fmtPct(p.roic)}</td>)}
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-2.5 text-sm text-gray-900">Reinvestment Rate</td>
+                      {calc.projections.map(p => <td key={p.year} className={tdCls}>{fmtPct(p.reinvestmentRate)}</td>)}
+                    </tr>
+                    <tr className="bg-blue-50">
+                      <td className="px-4 py-2.5 text-sm font-bold text-blue-900">Fundamental Growth Rate</td>
+                      {calc.projections.map(p => <td key={p.year} className={tdBold + ' text-blue-900'}>{fmtPct(p.fundamentalGrowthRate)}</td>)}
+                    </tr>
+                    <tr className="bg-yellow-50">
+                      <td className="px-4 py-2.5 text-sm font-bold text-yellow-900">Growth Rate Difference</td>
+                      {calc.projections.map((p, i) => {
+                        const diff = i === 0 ? 0 : p.nopatGrowthRate - p.fundamentalGrowthRate;
+                        const cls = i === 0 ? 'text-gray-400' : Math.abs(diff) < 0.02 ? 'text-green-700' : Math.abs(diff) < 0.05 ? 'text-yellow-700' : 'text-red-700';
+                        return <td key={p.year} className={`px-4 py-2.5 text-sm text-right font-bold ${cls}`}>{i === 0 ? '-' : `${diff >= 0 ? '+' : ''}${fmtPct(diff)}`}</td>;
+                      })}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== RELATIVE VALUATION ===== */}
+        {tab === 'Relative Valuation' && calc.projections && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white rounded-lg shadow-sm border p-5">
+                <h3 className="font-semibold text-gray-900 mb-4">EV/EBITDA Valuation</h3>
+                <div className="space-y-2">
+                  {[['Year 1 EBITDA', fmt(calc.projections[0].ebitda)], [`Forward EV/EBITDA Multiple`, `${a.forwardEVEBITDA.toFixed(1)}x`]].map(([l, v]) => (
+                    <div key={l} className="flex justify-between py-1.5 border-b text-sm"><span className="text-gray-600">{l}</span><span>{v}</span></div>
+                  ))}
+                  <div className="flex justify-between py-2 bg-blue-50 rounded px-3">
+                    <span className="font-bold text-blue-900">Enterprise Value</span>
+                    <span className="font-bold text-blue-900">{fmt(calc.projections[0].ebitda * a.forwardEVEBITDA)}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg shadow-sm border p-5">
+                <h3 className="font-semibold text-gray-900 mb-4">P/E Valuation</h3>
+                <div className="space-y-2">
+                  {[['Year 1 Net Income (est.)', fmt(calc.projections[0].nopat * 0.85)], [`Forward P/E Multiple`, `${a.forwardPE.toFixed(1)}x`]].map(([l, v]) => (
+                    <div key={l} className="flex justify-between py-1.5 border-b text-sm"><span className="text-gray-600">{l}</span><span>{v}</span></div>
+                  ))}
+                  <div className="flex justify-between py-2 bg-green-50 rounded px-3">
+                    <span className="font-bold text-green-900">Equity Value</span>
+                    <span className="font-bold text-green-900">{fmt(calc.projections[0].nopat * 0.85 * a.forwardPE)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+              <div className="px-5 py-3 bg-gray-50 border-b"><h3 className="font-semibold text-gray-900">Valuation Method Comparison</h3></div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className={thCls + ' text-left'}>Method</th>
+                      <th className={thCls + ' text-right'}>Enterprise Value</th>
+                      <th className={thCls + ' text-right'}>vs DCF</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    <tr className="bg-blue-50">
+                      <td className="px-4 py-2.5 text-sm font-bold text-blue-900">DCF Analysis</td>
+                      <td className={tdBold + ' text-blue-900'}>{fmt(calc.enterpriseValue)}</td>
+                      <td className={tdCls}>—</td>
+                    </tr>
+                    {[
+                      [`EV/EBITDA (${a.forwardEVEBITDA.toFixed(1)}x)`, calc.projections[0].ebitda * a.forwardEVEBITDA],
+                      [`P/E (${a.forwardPE.toFixed(1)}x) → EV est.`, calc.projections[0].nopat * 0.85 * a.forwardPE * (1 + a.debtToCapitalRatio / (1 - a.debtToCapitalRatio))],
+                    ].map(([label, ev]) => (
+                      <tr key={label}>
+                        <td className="px-4 py-2.5 text-sm font-medium text-gray-900">{label}</td>
+                        <td className={tdCls}>{fmt(ev)}</td>
+                        <td className={`${tdCls} ${ev > calc.enterpriseValue ? 'text-green-600' : 'text-red-600'}`}>{fmt(ev - calc.enterpriseValue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== SCENARIOS ===== */}
+        {tab === 'Scenarios' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {Object.entries(scenarios).map(([key, s]) => {
+                const c = allCalc[key];
+                const colors = { blue: ['bg-blue-50 border-blue-200','text-blue-900','text-blue-700'], green: ['bg-green-50 border-green-200','text-green-900','text-green-700'], red: ['bg-red-50 border-red-200','text-red-900','text-red-700'] };
+                const [bg, h, sub] = colors[s.color];
+                return (
+                  <div key={key} className={`${bg} border rounded-lg p-4`}>
+                    <div className="flex justify-between items-center mb-3">
+                      <h4 className={`font-semibold ${h}`}>{s.name}</h4>
+                      <span className="text-xs bg-white px-2 py-0.5 rounded border">{key.toUpperCase()}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {[
+                        ['Enterprise Value', fmt(c.enterpriseValue)],
+                        ['Equity Value', fmt(c.equityValue)],
+                        ['Share Price', `$${c.sharePrice.toFixed(2)}`],
+                        ['WACC', fmtPct(c.wacc)],
+                        ['Cost of Equity', fmtPct(c.coe)],
+                        ['Terminal Growth', fmtPct(s.assumptions.terminalGrowthRate)],
+                      ].map(([l, v]) => (
+                        <div key={l} className="flex justify-between text-sm">
+                          <span className={sub}>{l}</span>
+                          <span className={`font-medium ${h}`}>{v}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+              <div className="px-5 py-3 bg-gray-50 border-b"><h3 className="font-semibold text-gray-900">Revenue Comparison ($M)</h3></div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className={thCls + ' text-left'}>Year</th>
+                      {Object.values(scenarios).map(s => <th key={s.name} className={thCls + ' text-right'}>{s.name}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {[0,1,2,3,4].map(i => (
+                      <tr key={i} className={i%2===0?'bg-gray-50':''}>
+                        <td className="px-4 py-2.5 text-sm font-medium text-gray-900">Year {i+1}</td>
+                        {Object.keys(scenarios).map(key => <td key={key} className={tdCls}>{fmt(allCalc[key].projections[i].revenue)}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+              <div className="px-5 py-3 bg-gray-50 border-b"><h3 className="font-semibold text-gray-900">Free Cash Flow Comparison ($M)</h3></div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className={thCls + ' text-left'}>Year</th>
+                      {Object.values(scenarios).map(s => <th key={s.name} className={thCls + ' text-right'}>{s.name}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {[0,1,2,3,4].map(i => (
+                      <tr key={i} className={i%2===0?'bg-gray-50':''}>
+                        <td className="px-4 py-2.5 text-sm font-medium text-gray-900">Year {i+1}</td>
+                        {Object.keys(scenarios).map(key => <td key={key} className={tdCls}>{fmt(allCalc[key].projections[i].fcf)}</td>)}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ===== SENSITIVITY ===== */}
+        {tab === 'Sensitivity' && calc.projections && (() => {
+          const waccs = [-0.02, -0.01, 0, 0.01, 0.02].map(d => calc.wacc + d);
+          const tgrs = [-0.01, -0.005, 0, 0.005, 0.01].map(d => a.terminalGrowthRate + d);
+          const lastFCF = calc.projections[calc.projections.length - 1].fcf;
+          const evAt = (wr, tr) => {
+            if (wr <= tr) return NaN;
+            const pvs = calc.projections.reduce((sum, p) => sum + p.fcf / Math.pow(1 + wr, p.year), 0);
+            return pvs + (lastFCF * (1 + tr) / (wr - tr)) / Math.pow(1 + wr, a.projectionYears);
+          };
+          return (
+          <div className="bg-white rounded-lg shadow-sm border p-5">
+            <h3 className="font-semibold text-gray-900 mb-1">Sensitivity Analysis — Enterprise Value ($M)</h3>
+            <p className="text-xs text-gray-500 mb-4">WACC vs. terminal growth rate, centered on the current assumptions. The highlighted cell is the current enterprise value.</p>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border border-gray-200 rounded">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-4 py-2 text-xs font-medium text-gray-500 border-b border-r">WACC \ TGR</th>
+                    {tgrs.map((tg, j) => <th key={j} className={`px-4 py-2 text-xs font-medium text-center border-b ${j === 2 ? 'text-blue-700' : 'text-gray-500'}`}>{fmtPct(tg)}</th>)}
+                  </tr>
+                </thead>
+                <tbody>
+                  {waccs.map((wr, i) => (
+                    <tr key={i} className={i%2===0?'bg-white':'bg-gray-50'}>
+                      <td className={`px-4 py-2 text-sm font-medium border-r ${i === 2 ? 'text-blue-700' : 'text-gray-900'}`}>{fmtPct(wr)}</td>
+                      {tgrs.map((tr, j) => {
+                        const isCurrent = i === 2 && j === 2;
+                        return <td key={j} className={`px-4 py-2 text-sm text-center ${isCurrent ? 'bg-blue-100 font-bold text-blue-900' : 'text-gray-900'}`}>{fmt(evAt(wr, tr))}</td>;
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          );
+        })()}
+
+        {/* ===== FORMULA GLOSSARY ===== */}
+        {tab === 'Formula Glossary' && (
+          <div className="space-y-6">
+            {[
+              { title: 'Income Statement', items: [
+                ['blue','Revenue Growth', 'Revenue(Year N) = Revenue(Year N−1) × (1 + Growth Rate)'],
+                ['green','Gross Profit', 'Gross Profit = Revenue × Gross Margin %'],
+                ['yellow','Operating Expenses', 'SG&A = Revenue × SG&A %\nR&D = Revenue × R&D %'],
+                ['purple','EBITDA', 'EBITDA = Gross Profit − SG&A − R&D'],
+                ['red','Depreciation & NOPAT', 'Depreciation = CapEx × Depreciation as % of CapEx\nEBIT = EBITDA − Depreciation\nNOPAT = EBIT × (1 − Tax Rate)'],
+              ]},
+              { title: 'Free Cash Flow', items: [
+                ['blue','Working Capital', 'Working Capital = Revenue × WC %\nChange in WC = Current WC − Prior WC'],
+                ['green','CapEx', 'CapEx = Revenue × CapEx %'],
+                ['yellow','Unlevered FCF', 'FCF = NOPAT + Depreciation − Change in WC − CapEx'],
+              ]},
+              { title: 'WACC', items: [
+                ['blue','Market Risk Premium', 'MRP = Equity Market Return − Risk-Free Rate'],
+                ['green','Cost of Equity (CAPM)', 'Cost of Equity = Risk-Free Rate + (Beta × MRP)'],
+                ['yellow','Capital Structure', 'Equity Weight = 1 − Debt-to-Capital\nDebt Weight = Debt-to-Capital'],
+                ['purple','WACC', 'WACC = (Equity Weight × Cost of Equity) + (Debt Weight × Cost of Debt × (1 − Tax Rate))'],
+              ]},
+              { title: 'DCF Valuation', items: [
+                ['blue','Present Value of FCFs', 'PV of FCF(Year N) = FCF(Year N) ÷ (1 + WACC)^N'],
+                ['green','Terminal Value (Gordon Growth)', 'TV = FCF_final × (1 + TGR) ÷ (WACC − TGR)\nPV of TV = TV ÷ (1 + WACC)^N'],
+                ['yellow','Enterprise Value', 'EV = Sum of PV of FCFs + PV of Terminal Value'],
+              ]},
+              { title: 'Enterprise to Equity Bridge', items: [
+                ['blue','Equity Value', 'Equity Value = Enterprise Value + Cash & Securities − Total Debt'],
+                ['green','Share Price', 'Share Price = Equity Value ÷ Diluted Shares Outstanding'],
+              ]},
+              { title: 'Fundamental Growth Analysis', items: [
+                ['blue','Invested Capital', 'Invested Capital = Working Capital + Cumulative CapEx'],
+                ['green','ROIC', 'ROIC = NOPAT ÷ Invested Capital'],
+                ['yellow','Reinvestment Rate', 'Reinvestment Rate = (CapEx + Change in WC) ÷ NOPAT'],
+                ['purple','Fundamental Growth', 'Fundamental Growth Rate = ROIC × Reinvestment Rate'],
+              ]},
+              { title: 'Relative Valuation', items: [
+                ['blue','EV/EBITDA', 'Enterprise Value = Year 1 EBITDA × EV/EBITDA Multiple'],
+                ['green','P/E', 'Net Income ≈ NOPAT × 0.85\nEquity Value = Net Income × P/E Multiple'],
+              ]},
+            ].map(section => (
+              <div key={section.title} className="bg-white rounded-lg shadow-sm border p-5">
+                <h3 className="font-semibold text-gray-900 mb-4">{section.title}</h3>
+                <div className="space-y-3">
+                  {section.items.map(([color, title, formula]) => {
+                    const border = { blue:'border-blue-500', green:'border-green-500', yellow:'border-yellow-500', purple:'border-purple-500', red:'border-red-500' }[color];
+                    return (
+                      <div key={title} className={`border-l-4 ${border} pl-4`}>
+                        <div className="text-sm font-semibold text-gray-900">{title}</div>
+                        {formula.split('\n').map((line, i) => <p key={i} className="text-sm text-gray-600 mt-0.5">{line}</p>)}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            <div className="bg-white rounded-lg shadow-sm border p-5">
+              <h3 className="font-semibold text-gray-900 mb-4">Key Assumptions & Limitations</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="border-l-4 border-yellow-500 pl-4">
+                  <div className="text-sm font-semibold text-gray-900 mb-1">Model Assumptions</div>
+                  {['Constant margins over projection period','Terminal growth rate is sustainable in perpetuity','WACC remains constant throughout','No significant changes in capital structure','Working capital modeled as % of revenue'].map(t => <p key={t} className="text-sm text-gray-600">• {t}</p>)}
+                </div>
+                <div className="border-l-4 border-red-500 pl-4">
+                  <div className="text-sm font-semibold text-gray-900 mb-1">Practitioner Notes</div>
+                  {['Terminal value often = 50–80% of EV','Small WACC/TGR changes drive large EV swings','Fundamental growth should align with TGR','Always triangulate DCF with relative valuation','Run multiple scenarios to quantify uncertainty'].map(t => <p key={t} className="text-sm text-gray-600">• {t}</p>)}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <footer className="max-w-7xl mx-auto px-4 pb-8 pt-2 text-xs text-gray-500">
+        Built by <a href="../index.html" className="text-blue-700 hover:underline">Jason Reed</a> for FIN 40610 Security Analysis at the University of Notre Dame. For teaching use, not investment advice.
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

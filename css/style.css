@@ -321,6 +321,10 @@ p { margin: 0 0 1em; max-width: var(--measure); }
 /* ---------- materials ---------- */
 .materials { padding-top: var(--section); padding-bottom: var(--section); }
 .lessons-block { padding-top: clamp(3rem, 6vw, 4.5rem); }
+.materials > .course:first-child { padding-top: 0; }
+.materials .course + .aim { margin-top: clamp(2.5rem, 5vw, 3.5rem); }
+.materials .course h3 { margin-top: 0; }
+.materials .course .button { margin-top: 0.5rem; }
 .lesson-list {
   list-style: none; margin: 0; padding: 0; counter-reset: lesson;
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: clamp(2rem, 5vw, 4.5rem);

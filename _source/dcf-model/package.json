@@ -1,0 +1,16 @@
+{
+  "name": "dcf-model-generator",
+  "private": true,
+  "description": "Builds the DCF Model Generator page for jasonrreed.github.io/dcf-model/",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-react": "^7.26.0",
+    "postcss": "^8.4.49",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "tailwindcss": "^3.4.17"
+  }
+}

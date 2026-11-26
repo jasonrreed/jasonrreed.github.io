@@ -14,7 +14,9 @@ It's plain HTML, CSS and JavaScript with no build step. GitHub Pages serves the 
 | `awards.html` | Awards timeline |
 | `media.html` | Media mentions with filters and search |
 
-## Course slides
+## Course tools and slides
+
+`dcf-model/` holds the DCF Model Generator for FIN 40610 Security Analysis, served at https://jasonrreed.github.io/dcf-model/. Don't edit it by hand. The source is in `_source/dcf-model/`, and its README explains how to change it and republish.
 
 `managerial-economics/` holds the rendered FIN 30210 Managerial Economics slides, served at https://jasonrreed.github.io/managerial-economics/. Don't edit those files by hand. The source is in `_source/managerial-economics/`, and its README explains how to change a lesson and republish.
 
