@@ -25,7 +25,7 @@ const defaultScenarios = {
       grossMargin: 0.65, sgaAsPercentRevenue: 0.20, rdAsPercentRevenue: 0.10,
       taxRate: 0.25, workingCapitalAsPercentRevenue: 0.15,
       capexAsPercentRevenue: 0.04, depreciationAsPercentCapex: 0.25,
-      terminalGrowthRate: 0.025,
+      terminalGrowthRate: 0.025, terminalRONIC: 0.15, basePPE: 30.0,
       riskFreeRate: 0.04, equityMarketReturn: 0.10, beta: 1.2,
       debtToCapitalRatio: 0.23, costOfDebt: 0.05,
       projectionYears: 5, forwardEVEBITDA: 12.0, forwardPE: 18.0,
@@ -40,7 +40,7 @@ const defaultScenarios = {
       grossMargin: 0.70, sgaAsPercentRevenue: 0.18, rdAsPercentRevenue: 0.09,
       taxRate: 0.25, workingCapitalAsPercentRevenue: 0.12,
       capexAsPercentRevenue: 0.035, depreciationAsPercentCapex: 0.30,
-      terminalGrowthRate: 0.035,
+      terminalGrowthRate: 0.035, terminalRONIC: 0.25, basePPE: 30.0,
       riskFreeRate: 0.04, equityMarketReturn: 0.10, beta: 1.0,
       debtToCapitalRatio: 0.20, costOfDebt: 0.045,
       projectionYears: 5, forwardEVEBITDA: 14.0, forwardPE: 22.0,
@@ -55,7 +55,7 @@ const defaultScenarios = {
       grossMargin: 0.58, sgaAsPercentRevenue: 0.23, rdAsPercentRevenue: 0.11,
       taxRate: 0.25, workingCapitalAsPercentRevenue: 0.18,
       capexAsPercentRevenue: 0.05, depreciationAsPercentCapex: 0.20,
-      terminalGrowthRate: 0.015,
+      terminalGrowthRate: 0.015, terminalRONIC: 0.105, basePPE: 30.0,
       riskFreeRate: 0.04, equityMarketReturn: 0.10, beta: 1.5,
       debtToCapitalRatio: 0.29, costOfDebt: 0.06,
       projectionYears: 5, forwardEVEBITDA: 9.0, forwardPE: 14.0,
@@ -76,8 +76,10 @@ function calcWACC(a) {
 function calcProjections(a) {
   const { wacc, coe, mrp } = calcWACC(a);
   const projs = [];
-  let cumCapex = 0;
-  let prevNopat = null;
+  const interest = a.costOfDebt * a.totalDebt;
+  let prevWC = a.baseRevenue * a.workingCapitalAsPercentRevenue;
+  let netPPE = a.basePPE;
+  let capitalStart = prevWC + netPPE;
 
   for (let i = 0; i < a.projectionYears; i++) {
     const prevRev = i === 0 ? a.baseRevenue : projs[i-1].revenue;
@@ -92,35 +94,65 @@ function calcProjections(a) {
     const tax = ebit * a.taxRate;
     const nopat = ebit - tax;
     const workingCapital = revenue * a.workingCapitalAsPercentRevenue;
-    const prevWC = i === 0 ? a.baseRevenue * a.workingCapitalAsPercentRevenue : projs[i-1].workingCapital;
     const changeInWC = workingCapital - prevWC;
     const fcf = nopat + depreciation - changeInWC - capex;
     const pv = fcf / Math.pow(1 + wacc, i + 1);
-    cumCapex += capex;
-    const investedCapital = workingCapital + cumCapex;
-    const roic = investedCapital > 0 ? nopat / investedCapital : 0;
-    const reinvestmentRate = nopat > 0 ? (capex + changeInWC) / nopat : 0;
+    // Fundamental growth: returns on the capital in place at the start of the year,
+    // and reinvestment net of depreciation.
+    const netReinvestment = capex - depreciation + changeInWC;
+    const roic = capitalStart > 0 ? nopat / capitalStart : NaN;
+    const reinvestmentRate = nopat > 0 ? netReinvestment / nopat : NaN;
     const fundamentalGrowthRate = roic * reinvestmentRate;
-    const nopatGrowthRate = prevNopat && prevNopat > 0 ? (nopat - prevNopat) / prevNopat : 0;
-    prevNopat = nopat;
-    projs.push({ year: i+1, revenue, grossProfit, sga, rd, ebitda, capex, depreciation, ebit, tax, nopat, workingCapital, changeInWC, fcf, presentValue: pv, roic, reinvestmentRate, fundamentalGrowthRate, nopatGrowthRate });
+    const prevNopat = i === 0 ? null : projs[i-1].nopat;
+    const nopatGrowthRate = prevNopat && prevNopat > 0 ? nopat / prevNopat - 1 : NaN;
+    // Net income for the P/E valuation: interest on today's debt, taxed at the same rate.
+    const netIncome = (ebit - interest) * (1 - a.taxRate);
+    netPPE += capex - depreciation;
+    projs.push({ year: i+1, revenue, grossProfit, sga, rd, ebitda, capex, depreciation, ebit, tax, nopat, workingCapital, changeInWC, fcf, presentValue: pv,
+      capitalStart, netReinvestment, netPPE, roic, reinvestmentRate, fundamentalGrowthRate, nopatGrowthRate, interest, netIncome });
+    capitalStart += netReinvestment;
+    prevWC = workingCapital;
   }
+  // The growth each year's reinvestment implies shows up in the following year's NOPAT;
+  // after the final year, NOPAT grows at the terminal rate.
+  projs.forEach((p, i) => { p.nextYearGrowth = i < projs.length - 1 ? projs[i+1].nopatGrowthRate : a.terminalGrowthRate; });
 
   const sumPVs = projs.reduce((s, p) => s + p.presentValue, 0);
-  const lastFCF = projs[projs.length - 1].fcf;
-  const tv = lastFCF * (1 + a.terminalGrowthRate) / (wacc - a.terminalGrowthRate);
+  const last = projs[projs.length - 1];
+  // Terminal value (value driver): reinvest just enough to grow at g, given the return on new capital.
+  const g = a.terminalGrowthRate;
+  const terminalReinvestmentRate = a.terminalRONIC > 0 ? g / a.terminalRONIC : NaN;
+  const terminalNOPAT = last.nopat * (1 + g);
+  const terminalFCF = terminalNOPAT * (1 - terminalReinvestmentRate);
+  const tv = wacc > g ? terminalFCF / (wacc - g) : NaN;
   const tvPV = tv / Math.pow(1 + wacc, a.projectionYears);
   const ev = sumPVs + tvPV;
   const equityValue = ev + a.cashAndMarketableSecurities - a.totalDebt;
   const sharePrice = equityValue / a.dilutedSharesOutstanding;
 
-  return { projections: projs, wacc, coe, mrp, sumOfPVs: sumPVs, terminalValue: tv, terminalValuePV: tvPV, enterpriseValue: ev, equityValue, sharePrice };
+  // Relative valuation, bridged to equity value and price per share the same way as the DCF.
+  const y1 = projs[0];
+  const evEbitda = y1.ebitda * a.forwardEVEBITDA;
+  const evEbitdaEquity = evEbitda + a.cashAndMarketableSecurities - a.totalDebt;
+  const peEquity = y1.netIncome * a.forwardPE;
+  const peEV = peEquity + a.totalDebt - a.cashAndMarketableSecurities;
+  const relative = {
+    evEbitda, evEbitdaEquity, evEbitdaPrice: evEbitdaEquity / a.dilutedSharesOutstanding,
+    peEquity, peEV, pePrice: peEquity / a.dilutedSharesOutstanding,
+  };
+
+  return { projections: projs, wacc, coe, mrp, sumOfPVs: sumPVs, terminalNOPAT, terminalFCF, terminalReinvestmentRate, terminalValue: tv, terminalValuePV: tvPV, enterpriseValue: ev, equityValue, sharePrice, relative };
 }
 
 const fmt = (v) => {
   if (v === undefined || v === null || isNaN(v)) return '-';
   const s = `$${Math.abs(v).toFixed(1)}M`;
   return v < -0.05 ? `(${s})` : s;
+};
+const fmtPrice = (v) => {
+  if (v === undefined || v === null || isNaN(v)) return '-';
+  const s = `$${Math.abs(v).toFixed(2)}`;
+  return v < -0.005 ? `(${s})` : s;
 };
 const fmtPct = (v) => {
   if (v === undefined || v === null || isNaN(v)) return '-';
@@ -265,6 +297,7 @@ function App() {
               {inp('Working Capital as % of Revenue', 'workingCapitalAsPercentRevenue', true)}
               {inp('CapEx as % of Revenue', 'capexAsPercentRevenue', true)}
               {inp('Depreciation as % of CapEx', 'depreciationAsPercentCapex', true, 1, 'Typical: 20–30% for most assets')}
+              {inp('Base-Year Net PP&E ($M)', 'basePPE', false, 1, 'Starting invested capital = base-year working capital + net PP&E')}
             </>)}
 
             {card('WACC & Terminal Value', <>
@@ -278,8 +311,9 @@ function App() {
                 {calcBox('Cost of Equity', fmtPct(calc.coe), 'green')}
                 {calcBox('WACC', fmtPct(calc.wacc), 'purple')}
               </div>
-              <div className="border-t pt-3">
+              <div className="border-t pt-3 space-y-3">
                 {inp('Terminal Growth Rate', 'terminalGrowthRate', true, 0.01)}
+                {inp('Terminal Return on New Capital', 'terminalRONIC', true, 0.1, 'Set equal to WACC if new investment only earns its cost of capital')}
               </div>
             </>)}
 
@@ -430,7 +464,7 @@ function App() {
                     </div>
                     <div className="flex justify-between items-center py-2 bg-purple-50 rounded px-3">
                       <span className="font-bold text-purple-900">Share Price</span>
-                      <span className="font-bold text-purple-900">${calc.sharePrice.toFixed(2)}</span>
+                      <span className="font-bold text-purple-900">{fmtPrice(calc.sharePrice)}</span>
                     </div>
                   </div>
                 </div>
@@ -439,16 +473,21 @@ function App() {
               {/* Value Bridge */}
               <div className="bg-white rounded-lg shadow-sm border p-5">
                 <h3 className="font-semibold text-gray-900 mb-4">Value Bridge</h3>
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="grid grid-cols-3 gap-3 mb-3">
                   <div className="bg-blue-50 p-3 rounded">
-                    <div className="text-xs text-blue-700 font-medium">Terminal Growth (Assumed)</div>
+                    <div className="text-xs text-blue-700 font-medium">Terminal Growth</div>
                     <div className="text-lg font-bold text-blue-900">{fmtPct(a.terminalGrowthRate)}</div>
                   </div>
                   <div className="bg-green-50 p-3 rounded">
-                    <div className="text-xs text-green-700 font-medium">Fundamental Growth (Yr 5)</div>
-                    <div className="text-lg font-bold text-green-900">{fmtPct(calc.projections[calc.projections.length-1].fundamentalGrowthRate)}</div>
+                    <div className="text-xs text-green-700 font-medium">Return on New Capital</div>
+                    <div className="text-lg font-bold text-green-900">{fmtPct(a.terminalRONIC)}</div>
+                  </div>
+                  <div className="bg-purple-50 p-3 rounded">
+                    <div className="text-xs text-purple-700 font-medium">Terminal Reinvestment</div>
+                    <div className="text-lg font-bold text-purple-900">{fmtPct(calc.terminalReinvestmentRate)}</div>
                   </div>
                 </div>
+                <p className="text-xs text-gray-500 mb-4">To grow {fmtPct(a.terminalGrowthRate)} a year forever while earning {fmtPct(a.terminalRONIC)} on new capital, the company reinvests {fmtPct(calc.terminalReinvestmentRate)} of NOPAT (growth ÷ return on new capital). The rest is free cash flow.</p>
                 {[['Explicit FCF Period', calc.sumOfPVs / calc.enterpriseValue, 'bg-blue-500'],
                   ['Terminal Value', calc.terminalValuePV / calc.enterpriseValue, 'bg-green-500']].map(([label, pct, color]) => (
                   <div key={label} className="mb-3">
@@ -468,7 +507,7 @@ function App() {
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
               <div className="px-5 py-3 bg-gray-50 border-b">
                 <h3 className="font-semibold text-gray-900">Fundamental Growth Analysis</h3>
-                <p className="text-xs text-gray-500 mt-0.5">ROIC × Reinvestment Rate vs. assumed NOPAT growth</p>
+                <p className="text-xs text-gray-500 mt-0.5">Each year's net reinvestment, earning that year's ROIC, supports NOPAT growth the following year: ROIC × reinvestment rate. Year 5 is compared with the terminal growth rate.</p>
               </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full">
@@ -479,28 +518,32 @@ function App() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    <tr>
-                      <td className="px-4 py-2.5 text-sm font-medium text-gray-900">NOPAT Growth Rate</td>
-                      {calc.projections.map((p, i) => <td key={p.year} className={tdCls}>{i === 0 ? '-' : fmtPct(p.nopatGrowthRate)}</td>)}
-                    </tr>
-                    <tr className="bg-gray-50">
-                      <td className="px-4 py-2.5 text-sm text-gray-900">ROIC</td>
-                      {calc.projections.map(p => <td key={p.year} className={tdCls}>{fmtPct(p.roic)}</td>)}
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-2.5 text-sm text-gray-900">Reinvestment Rate</td>
-                      {calc.projections.map(p => <td key={p.year} className={tdCls}>{fmtPct(p.reinvestmentRate)}</td>)}
-                    </tr>
+                    {[
+                      ['Invested Capital (Start of Year)', p => fmt(p.capitalStart), ''],
+                      ['NOPAT', p => fmt(p.nopat), 'bg-gray-50'],
+                      ['ROIC', p => fmtPct(p.roic), ''],
+                      ['Net Reinvestment (CapEx − D&A + ΔWC)', p => fmt(p.netReinvestment), 'bg-gray-50'],
+                      ['Reinvestment Rate', p => fmtPct(p.reinvestmentRate), ''],
+                    ].map(([label, fn, rowCls]) => (
+                      <tr key={label} className={rowCls}>
+                        <td className="px-4 py-2.5 text-sm text-gray-900 whitespace-nowrap">{label}</td>
+                        {calc.projections.map(p => <td key={p.year} className={tdCls}>{fn(p)}</td>)}
+                      </tr>
+                    ))}
                     <tr className="bg-blue-50">
-                      <td className="px-4 py-2.5 text-sm font-bold text-blue-900">Fundamental Growth Rate</td>
+                      <td className="px-4 py-2.5 text-sm font-bold text-blue-900 whitespace-nowrap">Implied NOPAT Growth, Next Year</td>
                       {calc.projections.map(p => <td key={p.year} className={tdBold + ' text-blue-900'}>{fmtPct(p.fundamentalGrowthRate)}</td>)}
                     </tr>
+                    <tr>
+                      <td className="px-4 py-2.5 text-sm font-medium text-gray-900 whitespace-nowrap">Projected NOPAT Growth, Next Year</td>
+                      {calc.projections.map((p, i) => <td key={p.year} className={tdCls}>{fmtPct(p.nextYearGrowth)}{i === calc.projections.length - 1 ? ' (terminal)' : ''}</td>)}
+                    </tr>
                     <tr className="bg-yellow-50">
-                      <td className="px-4 py-2.5 text-sm font-bold text-yellow-900">Growth Rate Difference</td>
-                      {calc.projections.map((p, i) => {
-                        const diff = i === 0 ? 0 : p.nopatGrowthRate - p.fundamentalGrowthRate;
-                        const cls = i === 0 ? 'text-gray-400' : Math.abs(diff) < 0.02 ? 'text-green-700' : Math.abs(diff) < 0.05 ? 'text-yellow-700' : 'text-red-700';
-                        return <td key={p.year} className={`px-4 py-2.5 text-sm text-right font-bold ${cls}`}>{i === 0 ? '-' : `${diff >= 0 ? '+' : ''}${fmtPct(diff)}`}</td>;
+                      <td className="px-4 py-2.5 text-sm font-bold text-yellow-900 whitespace-nowrap">Implied minus Projected</td>
+                      {calc.projections.map(p => {
+                        const diff = p.fundamentalGrowthRate - p.nextYearGrowth;
+                        const cls = isNaN(diff) ? 'text-gray-400' : Math.abs(diff) < 0.02 ? 'text-green-700' : Math.abs(diff) < 0.05 ? 'text-yellow-700' : 'text-red-700';
+                        return <td key={p.year} className={`px-4 py-2.5 text-sm text-right font-bold ${cls}`}>{isNaN(diff) ? '-' : `${diff >= 0 ? '+' : ''}${fmtPct(diff)}`}</td>;
                       })}
                     </tr>
                   </tbody>
@@ -511,67 +554,94 @@ function App() {
         )}
 
         {/* ===== RELATIVE VALUATION ===== */}
-        {tab === 'Relative Valuation' && calc.projections && (
+        {tab === 'Relative Valuation' && calc.projections && (() => {
+          const y1 = calc.projections[0];
+          const r = calc.relative;
+          const line = (l, v) => (
+            <div key={l} className="flex justify-between py-1.5 border-b text-sm"><span className="text-gray-600">{l}</span><span>{v}</span></div>
+          );
+          const tones = { blue: ['bg-blue-50', 'text-blue-900'], green: ['bg-green-50', 'text-green-900'], purple: ['bg-purple-50', 'text-purple-900'] };
+          const total = (l, v, color) => (
+            <div className={`flex justify-between py-2 ${tones[color][0]} rounded px-3`}>
+              <span className={`font-bold ${tones[color][1]}`}>{l}</span>
+              <span className={`font-bold ${tones[color][1]}`}>{v}</span>
+            </div>
+          );
+          const vsDCF = (price) => {
+            if (!(calc.sharePrice > 0) || isNaN(price)) return { text: '—', cls: '' };
+            const d = price / calc.sharePrice - 1;
+            return { text: `${d >= 0 ? '+' : ''}${fmtPct(d)}`, cls: d >= 0 ? 'text-green-600' : 'text-red-600' };
+          };
+          const methods = [
+            ['DCF Analysis', calc.enterpriseValue, calc.equityValue, calc.sharePrice, true],
+            [`EV/EBITDA (${a.forwardEVEBITDA.toFixed(1)}x)`, r.evEbitda, r.evEbitdaEquity, r.evEbitdaPrice, false],
+            [`P/E (${a.forwardPE.toFixed(1)}x)`, r.peEV, r.peEquity, r.pePrice, false],
+          ];
+          return (
           <div className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-white rounded-lg shadow-sm border p-5">
                 <h3 className="font-semibold text-gray-900 mb-4">EV/EBITDA Valuation</h3>
                 <div className="space-y-2">
-                  {[['Year 1 EBITDA', fmt(calc.projections[0].ebitda)], [`Forward EV/EBITDA Multiple`, `${a.forwardEVEBITDA.toFixed(1)}x`]].map(([l, v]) => (
-                    <div key={l} className="flex justify-between py-1.5 border-b text-sm"><span className="text-gray-600">{l}</span><span>{v}</span></div>
-                  ))}
-                  <div className="flex justify-between py-2 bg-blue-50 rounded px-3">
-                    <span className="font-bold text-blue-900">Enterprise Value</span>
-                    <span className="font-bold text-blue-900">{fmt(calc.projections[0].ebitda * a.forwardEVEBITDA)}</span>
-                  </div>
+                  {line('Year 1 EBITDA', fmt(y1.ebitda))}
+                  {line('Forward EV/EBITDA Multiple', `${a.forwardEVEBITDA.toFixed(1)}x`)}
+                  {total('Enterprise Value', fmt(r.evEbitda), 'blue')}
+                  {line('Add: Cash & Marketable Securities', fmt(a.cashAndMarketableSecurities))}
+                  {line('Less: Total Debt', fmt(-a.totalDebt))}
+                  {line('Equity Value', fmt(r.evEbitdaEquity))}
+                  {total('Share Price', fmtPrice(r.evEbitdaPrice), 'purple')}
                 </div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border p-5">
                 <h3 className="font-semibold text-gray-900 mb-4">P/E Valuation</h3>
                 <div className="space-y-2">
-                  {[['Year 1 Net Income (est.)', fmt(calc.projections[0].nopat * 0.85)], [`Forward P/E Multiple`, `${a.forwardPE.toFixed(1)}x`]].map(([l, v]) => (
-                    <div key={l} className="flex justify-between py-1.5 border-b text-sm"><span className="text-gray-600">{l}</span><span>{v}</span></div>
-                  ))}
-                  <div className="flex justify-between py-2 bg-green-50 rounded px-3">
-                    <span className="font-bold text-green-900">Equity Value</span>
-                    <span className="font-bold text-green-900">{fmt(calc.projections[0].nopat * 0.85 * a.forwardPE)}</span>
-                  </div>
+                  {line('Year 1 EBIT', fmt(y1.ebit))}
+                  {line('Less: Interest (Cost of Debt × Total Debt)', fmt(-y1.interest))}
+                  {line(`Less: Taxes at ${fmtPct(a.taxRate)}`, fmt(-(y1.ebit - y1.interest) * a.taxRate))}
+                  {line('Year 1 Net Income', fmt(y1.netIncome))}
+                  {line('Forward P/E Multiple', `${a.forwardPE.toFixed(1)}x`)}
+                  {total('Equity Value', fmt(r.peEquity), 'green')}
+                  {line('Diluted Shares Outstanding (M)', a.dilutedSharesOutstanding.toFixed(1))}
+                  {total('Share Price', fmtPrice(r.pePrice), 'purple')}
                 </div>
               </div>
             </div>
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-              <div className="px-5 py-3 bg-gray-50 border-b"><h3 className="font-semibold text-gray-900">Valuation Method Comparison</h3></div>
+              <div className="px-5 py-3 bg-gray-50 border-b">
+                <h3 className="font-semibold text-gray-900">Valuation Method Comparison</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Every method uses the same bridge between enterprise and equity value: add cash, subtract debt. P/E values the equity directly, so its enterprise value adds the debt back and subtracts the cash.</p>
+              </div>
               <div className="overflow-x-auto">
                 <table className="min-w-full">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className={thCls + ' text-left'}>Method</th>
                       <th className={thCls + ' text-right'}>Enterprise Value</th>
+                      <th className={thCls + ' text-right'}>Equity Value</th>
+                      <th className={thCls + ' text-right'}>Share Price</th>
                       <th className={thCls + ' text-right'}>vs DCF</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    <tr className="bg-blue-50">
-                      <td className="px-4 py-2.5 text-sm font-bold text-blue-900">DCF Analysis</td>
-                      <td className={tdBold + ' text-blue-900'}>{fmt(calc.enterpriseValue)}</td>
-                      <td className={tdCls}>—</td>
-                    </tr>
-                    {[
-                      [`EV/EBITDA (${a.forwardEVEBITDA.toFixed(1)}x)`, calc.projections[0].ebitda * a.forwardEVEBITDA],
-                      [`P/E (${a.forwardPE.toFixed(1)}x) → EV est.`, calc.projections[0].nopat * 0.85 * a.forwardPE * (1 + a.debtToCapitalRatio / (1 - a.debtToCapitalRatio))],
-                    ].map(([label, ev]) => (
-                      <tr key={label}>
-                        <td className="px-4 py-2.5 text-sm font-medium text-gray-900">{label}</td>
-                        <td className={tdCls}>{fmt(ev)}</td>
-                        <td className={`${tdCls} ${ev > calc.enterpriseValue ? 'text-green-600' : 'text-red-600'}`}>{fmt(ev - calc.enterpriseValue)}</td>
-                      </tr>
-                    ))}
+                    {methods.map(([label, ev, eq, price, isDCF]) => {
+                      const v = vsDCF(price);
+                      return (
+                        <tr key={label} className={isDCF ? 'bg-blue-50' : ''}>
+                          <td className={`px-4 py-2.5 text-sm ${isDCF ? 'font-bold text-blue-900' : 'font-medium text-gray-900'}`}>{label}</td>
+                          <td className={isDCF ? tdBold + ' text-blue-900' : tdCls}>{fmt(ev)}</td>
+                          <td className={isDCF ? tdBold + ' text-blue-900' : tdCls}>{fmt(eq)}</td>
+                          <td className={isDCF ? tdBold + ' text-blue-900' : tdCls}>{fmtPrice(price)}</td>
+                          <td className={`${tdCls} ${isDCF ? 'text-gray-400' : v.cls}`}>{isDCF ? '—' : v.text}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
 
         {/* ===== SCENARIOS ===== */}
         {tab === 'Scenarios' && (
@@ -591,10 +661,11 @@ function App() {
                       {[
                         ['Enterprise Value', fmt(c.enterpriseValue)],
                         ['Equity Value', fmt(c.equityValue)],
-                        ['Share Price', `$${c.sharePrice.toFixed(2)}`],
+                        ['Share Price', fmtPrice(c.sharePrice)],
                         ['WACC', fmtPct(c.wacc)],
                         ['Cost of Equity', fmtPct(c.coe)],
                         ['Terminal Growth', fmtPct(s.assumptions.terminalGrowthRate)],
+                        ['Return on New Capital', fmtPct(s.assumptions.terminalRONIC)],
                       ].map(([l, v]) => (
                         <div key={l} className="flex justify-between text-sm">
                           <span className={sub}>{l}</span>
@@ -655,11 +726,12 @@ function App() {
         {tab === 'Sensitivity' && calc.projections && (() => {
           const waccs = [-0.02, -0.01, 0, 0.01, 0.02].map(d => calc.wacc + d);
           const tgrs = [-0.01, -0.005, 0, 0.005, 0.01].map(d => a.terminalGrowthRate + d);
-          const lastFCF = calc.projections[calc.projections.length - 1].fcf;
+          const lastNOPAT = calc.projections[calc.projections.length - 1].nopat;
           const evAt = (wr, tr) => {
-            if (wr <= tr) return NaN;
+            if (wr <= tr || !(a.terminalRONIC > 0)) return NaN;
             const pvs = calc.projections.reduce((sum, p) => sum + p.fcf / Math.pow(1 + wr, p.year), 0);
-            return pvs + (lastFCF * (1 + tr) / (wr - tr)) / Math.pow(1 + wr, a.projectionYears);
+            const terminalFCF = lastNOPAT * (1 + tr) * (1 - tr / a.terminalRONIC);
+            return pvs + (terminalFCF / (wr - tr)) / Math.pow(1 + wr, a.projectionYears);
           };
           return (
           <div className="bg-white rounded-lg shadow-sm border p-5">
@@ -714,7 +786,7 @@ function App() {
               ]},
               { title: 'DCF Valuation', items: [
                 ['blue','Present Value of FCFs', 'PV of FCF(Year N) = FCF(Year N) ÷ (1 + WACC)^N'],
-                ['green','Terminal Value (Gordon Growth)', 'TV = FCF_final × (1 + TGR) ÷ (WACC − TGR)\nPV of TV = TV ÷ (1 + WACC)^N'],
+                ['green','Terminal Value (Value Driver)', 'Terminal NOPAT = NOPAT_final × (1 + TGR)\nTerminal Reinvestment Rate = TGR ÷ Return on New Capital\nTV = Terminal NOPAT × (1 − Terminal Reinvestment Rate) ÷ (WACC − TGR)\nPV of TV = TV ÷ (1 + WACC)^N'],
                 ['yellow','Enterprise Value', 'EV = Sum of PV of FCFs + PV of Terminal Value'],
               ]},
               { title: 'Enterprise to Equity Bridge', items: [
@@ -722,14 +794,15 @@ function App() {
                 ['green','Share Price', 'Share Price = Equity Value ÷ Diluted Shares Outstanding'],
               ]},
               { title: 'Fundamental Growth Analysis', items: [
-                ['blue','Invested Capital', 'Invested Capital = Working Capital + Cumulative CapEx'],
-                ['green','ROIC', 'ROIC = NOPAT ÷ Invested Capital'],
-                ['yellow','Reinvestment Rate', 'Reinvestment Rate = (CapEx + Change in WC) ÷ NOPAT'],
-                ['purple','Fundamental Growth', 'Fundamental Growth Rate = ROIC × Reinvestment Rate'],
+                ['blue','Invested Capital', 'Starting Invested Capital = Base-Year Working Capital + Base-Year Net PP&E\nNet Reinvestment = CapEx − Depreciation + Change in WC\nNext Year\'s Invested Capital = Invested Capital + Net Reinvestment'],
+                ['green','ROIC', 'ROIC = NOPAT ÷ Invested Capital at the Start of the Year'],
+                ['yellow','Reinvestment Rate', 'Reinvestment Rate = Net Reinvestment ÷ NOPAT'],
+                ['purple','Fundamental Growth', 'Implied NOPAT Growth Next Year = ROIC × Reinvestment Rate'],
               ]},
               { title: 'Relative Valuation', items: [
-                ['blue','EV/EBITDA', 'Enterprise Value = Year 1 EBITDA × EV/EBITDA Multiple'],
-                ['green','P/E', 'Net Income ≈ NOPAT × 0.85\nEquity Value = Net Income × P/E Multiple'],
+                ['blue','EV/EBITDA', 'Enterprise Value = Year 1 EBITDA × EV/EBITDA Multiple\nEquity Value = Enterprise Value + Cash & Securities − Total Debt'],
+                ['green','P/E', 'Net Income = (EBIT − Cost of Debt × Total Debt) × (1 − Tax Rate)\nEquity Value = Year 1 Net Income × P/E Multiple\nEnterprise Value = Equity Value + Total Debt − Cash & Securities'],
+                ['yellow','Share Price', 'Share Price = Equity Value ÷ Diluted Shares Outstanding'],
               ]},
             ].map(section => (
               <div key={section.title} className="bg-white rounded-lg shadow-sm border p-5">
@@ -753,7 +826,7 @@ function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="border-l-4 border-yellow-500 pl-4">
                   <div className="text-sm font-semibold text-gray-900 mb-1">Model Assumptions</div>
-                  {['Constant margins over projection period','Terminal growth rate is sustainable in perpetuity','WACC remains constant throughout','No significant changes in capital structure','Working capital modeled as % of revenue'].map(t => <p key={t} className="text-sm text-gray-600">• {t}</p>)}
+                  {['Constant margins over projection period','Terminal growth rate is sustainable in perpetuity','New capital after the forecast earns the terminal return on new capital','Debt and interest expense stay at base-year levels','WACC remains constant throughout','No significant changes in capital structure','Working capital modeled as % of revenue'].map(t => <p key={t} className="text-sm text-gray-600">• {t}</p>)}
                 </div>
                 <div className="border-l-4 border-red-500 pl-4">
                   <div className="text-sm font-semibold text-gray-900 mb-1">Practitioner Notes</div>
